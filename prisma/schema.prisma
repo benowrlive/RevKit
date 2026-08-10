@@ -1,0 +1,150 @@
+// RevKit Prisma schema — adapted from master prompt §8
+// SQLite-backed persistence for reviews.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Review {
+  id                String           @id
+  title             String
+  researchQuestion  String?
+  type              String           // INTERVENTION | DTA | METHODOLOGY | OVERVIEW | FLEXIBLE
+  subType           String?
+  status            String           @default("draft")
+  phase             String           @default("scoping")
+  createdAt         String           // ISO 8601
+  updatedAt         String
+  comparisons       Comparison[]
+  studies           Study[]
+  references        Reference[]
+  robAssessments    RobAssessment[]
+  prismaFlow        PrismaFlow?
+}
+
+model Comparison {
+  id        String    @id
+  reviewId  String
+  name      String
+  order     Int
+  review    Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  outcomes  Outcome[]
+}
+
+model Outcome {
+  id            String      @id
+  comparisonId  String
+  name          String
+  dataType      String      // DICHOTOMOUS | CONTINUOUS | OE_V | GIV | DTA_2x2
+  effectMeasure String
+  method        String      // MH | PETO | IV | DL | LOGIT_UNIVARIATE | HSROC
+  model         String      @default("fixed")
+  unit          String?
+  timeFrame     String?
+  order         Int
+  comparison    Comparison  @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  subgroups     Subgroup[]
+  dataPoints    DataPoint[]
+}
+
+model Subgroup {
+  id          String      @id
+  outcomeId   String
+  name        String
+  order       Int
+  outcome     Outcome     @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+  dataPoints  DataPoint[]
+}
+
+model DataPoint {
+  id          String    @id
+  outcomeId   String
+  subgroupId  String?
+  studyId     String
+  events1     Int?
+  total1      Int?
+  events2     Int?
+  total2      Int?
+  mean1       Float?
+  sd1         Float?
+  n1          Int?
+  mean2       Float?
+  sd2         Float?
+  n2          Int?
+  oE          Float?
+  v           Float?
+  effect      Float?
+  se          Float?
+  tp          Int?
+  fp          Int?
+  fn          Int?
+  tn          Int?
+  order       Int
+  outcome     Outcome   @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+  subgroup    Subgroup? @relation(fields: [subgroupId], references: [id], onDelete: SetNull)
+  study       Study     @relation(fields: [studyId], references: [id], onDelete: Cascade)
+}
+
+model Study {
+  id                String           @id
+  reviewId          String
+  label             String
+  year              Int?
+  authors           String?
+  doi               String?
+  pdfPath           String?
+  status            String           @default("screening")
+  excludeReason     String?
+  design            String?
+  picos             String?          // JSON string
+  indexTest         String?
+  referenceStandard String?
+  notes             String?
+  createdAt         String
+  updatedAt         String
+  review            Review           @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  dataPoints        DataPoint[]
+  robAssessments    RobAssessment[]
+}
+
+model Reference {
+  id              String   @id
+  reviewId        String
+  title           String
+  authors         String
+  year            Int?
+  journal         String?
+  doi             String?
+  pmid            String?
+  rawRis          String?
+  stage           String?
+  decision        String?
+  excludeReason   String?
+  review          Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+model RobAssessment {
+  id                String   @id
+  studyId           String
+  tool              String   // ROB2 | ROBINS_I | QUADAS_2
+  domainJudgements  String   // JSON string
+  signallingAnswers String   // JSON string
+  overallJudgement  String?
+  createdAt         String
+  updatedAt         String
+  study             Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  review            Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId          String
+}
+
+model PrismaFlow {
+  id        String  @id
+  reviewId  String  @unique
+  boxes     String  // JSON string of 11-box template
+  review    Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}

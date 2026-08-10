@@ -1,0 +1,929 @@
+     1→# RevKit — Master Build Prompt
+     2→
+     3→> **How to use this file:** Open a fresh GLM-5.2 chat. Paste this entire file as your first message. GLM-5.2 will have full context to build RevKit phase-by-phase. After each phase, run the acceptance checklist, commit, then say "Continue to Phase N+1" in the same chat (or start fresh and re-paste this file).
+     4→>
+     5→> **One file. One paste. One product.**
+     6→
+     7→---
+     8→
+     9→# PROJECT: RevKit — Modern RevMan Clone (Desktop-First)
+    10→
+    11→You are a senior fullstack engineer building **RevKit**, a modern, open-source clone of Cochrane's RevMan 5 software for systematic reviews. You will build it phase-by-phase across 6 phases (~8.5 weeks part-time). I will say "Continue to Phase N" when ready to advance.
+    12→
+    13→## STRICT RULES (apply to every phase)
+    14→
+    15→1. **Strict TypeScript** — no `any`, no `eslint-disable` without justification comment.
+    16→2. **Conventional Commits** — `feat(phase-N): <summary>`.
+    17→3. **Pin library versions exactly** — don't invent versions.
+    18→4. **shadcn/ui primitives first** — use existing components unless explicitly specified.
+    19→5. **All business logic client-side** — Next.js static export (no Server Actions, no API routes).
+    20→6. **File system / SQLite / dialog operations go through Tauri commands** (Rust), invoked from TS via `@tauri-apps/api`. Guard with `isTauri()` in dev.
+    21→7. **At end of every phase**: run the acceptance checklist, report pass/fail per item. Don't say "all pass" without actually checking.
+    22→8. **Output code in labeled code blocks** with full file path as first comment, like: `// apps/web/lib/foo.ts`.
+    23→9. **If something is ambiguous, ask me before assuming.**
+    24→10. **Never invent features not in this prompt.** If a feature isn't listed, it's not in v1.
+    25→
+    26→---
+    27→
+    28→## 1. What is RevKit?
+    29→
+    30→A **desktop app** that helps researchers do Cochrane systematic reviews. Supports all 5 Cochrane review types:
+    31→
+    32→| Type | Use case | Data entry | Meta-analysis | RoB tool |
+    33→|---|---|---|---|---|
+    34→| **Intervention** | Does X work for Y? | 2×2 / mean+SD / GIV | MH, Peto, IV, DL | RoB 2 + ROBINS-I |
+    35→| **DTA** | How good is test X for disease Y? | TP/FP/FN/TN | Univariate logit + HSROC | QUADAS-2 |
+    36→| **Methodology** | How good is method X? | Same as intervention | Same as intervention | ROBINS-I |
+    37→| **Overview** | Summary of multiple reviews | Linked review IDs | Extracted effect sizes | AMSTAR-2 lite |
+    38→| **Flexible** | Custom | User-defined | Optional | Optional |
+    39→
+    40→**Sub-types**: Prognosis / Etiology / Qualitative — implemented as a tag, not separate code paths.
+    41→
+    42→## 2. What's IN v1 / OUT of v1
+    43→
+    44→**IN:**
+    45→- All 5 review types via New Review Wizard
+    46→- DTA Calculator (Sens/Spec/PPV/NPV/LR+/LR-/Prevalence with 95% CIs)
+    47→- Studies + references (RIS import, dedup, screening, PDF attach)
+    48→- Intervention meta-analysis (MH/Peto/IV/DL, forest plot, funnel plot, I², τ²)
+    49→- DTA meta-analysis (univariate pooling for Sens & Spec, SROC plot)
+    50→- Risk of bias: RoB 2 (RCTs, 5 domains), ROBINS-I (non-randomized, 7 domains), QUADAS-2 (DTA, 4 domains)
+    51→- PRISMA 2020 flow diagram (11-box template)
+    52→- Word `.docx` export + CSV export + PNG/SVG export per plot
+    53→- Desktop app: `.exe` (Windows), `.dmg` (macOS), `.AppImage` + `.deb` (Linux)
+    54→- Local `.revkit` JSON file format (save, open, share)
+    55→- Auto-update via GitHub Releases
+    56→- Open-source on GitHub (MIT)
+    57→
+    58→**OUT (cut for v1 — do NOT build these):**
+    59→- Real-time multi-user collaboration (Yjs/Liveblocks)
+    60→- AI features (PDF extraction, RoB prefill, QA chat)
+    61→- Cloud sync / web version
+    62→- `.rm5` XML import/export
+    63→- GRADE Summary of Findings
+    64→- User accounts / auth (local app)
+    65→- Network meta-analysis, REML, Bayesian
+    66→- ORCID / Google login
+    67→
+    68→## 3. Tech stack (locked)
+    69→
+    70→| Layer | Choice |
+    71→|---|---|
+    72→| Desktop shell | **Tauri 2.0** (Rust) |
+    73→| Framework | **Next.js 16** (App Router, **static export** — `output: 'export'`) |
+    74→| Language | **TypeScript 5**, strict |
+    75→| UI | **shadcn/ui** + **Tailwind CSS v4** |
+    76→| Tables | **TanStack Table v8** |
+    77→| Forest plots | **D3 + custom SVG** |
+    78→| PRISMA editor | **@xyflow/react** (react-flow) |
+    79→| Forms | **react-hook-form** + **zod** |
+    80→| Local DB | **SQLite** via `tauri-plugin-sql` (in-memory working copy) |
+    81→| File system | `tauri-plugin-fs` + `tauri-plugin-dialog` |
+    82→| Settings | `tauri-plugin-store` (recent files, preferences) |
+    83→| Auto-update | `tauri-plugin-updater` |
+    84→| Charts (auxiliary) | **Recharts** (SROC, funnel) |
+    85→| Testing | **Vitest** + **Playwright** |
+    86→| Distribution | **GitHub Releases** via `tauri-action` |
+    87→| Error tracking | **Sentry** (optional, free tier) |
+    88→| ORM | **Prisma 6** (SQLite adapter) |
+    89→
+    90→**Third-party accounts needed: 2** (GitHub + Sentry). That's it.
+    91→
+    92→## 4. Repository structure
+    93→
+    94→```
+    95→revkit/                                 # monorepo (pnpm workspaces)
+    96→├── apps/
+    97→│   ├── web/                            # Next.js 16 app (also runs as static export)
+    98→│   │   ├── app/
+    99→│   │   │   ├── (welcome)/              # welcome screen with recent files
+   100→│   │   │   ├── (review)/               # review workspace (single open review)
+   101→│   │   │   │   ├── overview/
+   102→│   │   │   │   ├── studies/
+   103→│   │   │   │   ├── comparisons/
+   104→│   │   │   │   ├── rob/
+   105→│   │   │   │   ├── prisma/
+   106→│   │   │   │   ├── export/
+   107→│   │   │   │   └── settings/
+   108→│   │   │   └── layout.tsx
+   109→│   │   ├── components/
+   110→│   │   │   ├── ui/                     # shadcn/ui base
+   111→│   │   │   ├── forest-plot/
+   112→│   │   │   ├── dta/
+   113→│   │   │   ├── rob/
+   114→│   │   │   ├── prisma-flow/
+   115→│   │   │   └── editor/
+   116→│   │   ├── lib/
+   117→│   │   │   ├── stats/                  # MH, Peto, IV, DL, DTA, heterogeneity
+   118→│   │   │   ├── dta/                    # DTA calculator formulas
+   119→│   │   │   ├── prisma/                 # Prisma client (SQLite adapter)
+   120→│   │   │   ├── project/                # .revkit schema, migrations, save/load
+   121→│   │   │   ├── export/                 # docx, csv, png, svg
+   122→│   │   │   └── tauri/                  # Tauri command wrappers
+   123→│   │   ├── hooks/
+   124→│   │   ├── prisma/schema.prisma        # SQLite schema
+   125→│   │   ├── public/
+   126→│   │   ├── next.config.ts              # output: 'export'
+   127→│   │   └── package.json
+   128→│   └── desktop/                        # Tauri 2.0 shell
+   129→│       ├── src-tauri/
+   130→│       │   ├── src/main.rs
+   131→│       │   ├── Cargo.toml
+   132→│       │   ├── tauri.conf.json
+   133→│       │   └── capabilities/
+   134→│       └── package.json
+   135→├── packages/
+   136→│   └── stats-engine/                   # pure TS stats library (no React)
+   137→│       ├── src/{iv,mh,peto,dl,heterogeneity,dta,forest}.ts
+   138→│       └── package.json
+   139→├── .github/workflows/
+   140→│   ├── ci.yml
+   141→│   └── release.yml
+   142→├── pnpm-workspace.yaml
+   143→├── turbo.json
+   144→├── package.json
+   145→└── README.md
+   146→```
+   147→
+   148→## 5. Architecture diagram
+   149→
+   150→```
+   151→┌──────────────────────────────────────────────────────────┐
+   152→│              RevKit Desktop App (Tauri 2.0)              │
+   153→│                                                          │
+   154→│  ┌────────────────────────────────────────────────────┐  │
+   155→│  │  WebView (WebView2/WKWebView/WebKitGTK)            │  │
+   156→│  │  ┌──────────────────────────────────────────────┐  │  │
+   157→│  │  │  Next.js static export (React 19)            │  │  │
+   158→│  │  │  • App Router (no Server Actions — static)   │  │  │
+   159→│  │  │  • shadcn/ui components                      │  │  │
+   160→│  │  │  • All business logic client-side            │  │  │
+   161→│  │  │  • Talks to Rust via Tauri commands          │  │  │
+   162→│  │  └──────────────────────────────────────────────┘  │  │
+   163→│  └────────────────────────────────────────────────────┘  │
+   164→│                                                          │
+   165→│  ┌────────────────────────────────────────────────────┐  │
+   166→│  │  Rust backend (src-tauri/src/main.rs)              │  │
+   167→│  │  • tauri-plugin-sql   → SQLite (working copy)      │  │
+   168→│  │  • tauri-plugin-fs    → read/write .revkit files   │  │
+   169→│  │  • tauri-plugin-dialog → native file pickers       │  │
+   170→│  │  • tauri-plugin-store → settings, recent files     │  │
+   171→│  │  • tauri-plugin-updater → auto-update from GitHub  │  │
+   172→│  │  • Custom commands:                               │  │
+   173→│  │      - open_project(path) → JSON                  │  │
+   174→│  │      - save_project(path, json)                   │  │
+   175→│  │      - export_docx(json) → bytes                  │  │
+   176→│  │      - export_csv(json) → zip bytes               │  │
+   177→│  └────────────────────────────────────────────────────┘  │
+   178→│                                                          │
+   179→│  ┌────────────────────────────────────────────────────┐  │
+   180→│  │  SQLite (in-memory working copy)                  │  │
+   181→│  │  • Loaded from .revkit file on Open               │  │
+   182→│  │  • All reads/writes through Prisma client         │  │
+   183→│  │  • On Save: serialize back to .revkit JSON        │  │
+   184→│  └────────────────────────────────────────────────────┘  │
+   185→└──────────────────────────────────────────────────────────┘
+   186→```
+   187→
+   188→**Why dual-layer storage:**
+   189→- **Working state** = in-memory SQLite (developer experience of Prisma + queries)
+   190→- **Persistence** = `.revkit` JSON file (user portability, email-able, git-diff-able)
+   191→
+   192→On Open: JSON file → in-memory SQLite. On Save: in-memory SQLite → JSON file.
+   193→
+   194→## 6. `.revkit` project file format
+   195→
+   196→A `.revkit` file is a UTF-8 JSON file:
+   197→
+   198→```json
+   199→{
+   200→  "format": "revkit-1",
+   201→  "formatVersion": "1.0.0",
+   202→  "createdAt": "2026-08-10T12:00:00Z",
+   203→  "updatedAt": "2026-08-10T15:30:00Z",
+   204→  "appVersion": "0.1.0",
+   205→  "review": {
+   206→    "id": "uuid-v4",
+   207→    "title": "Rapid diagnostic tests for uncomplicated P. falciparum malaria",
+   208→    "researchQuestion": "...",
+   209→    "type": "DTA",
+   210→    "subType": null,
+   211→    "status": "draft",
+   212→    "phase": "extraction",
+   213→    "comparisons": [...],
+   214→    "studies": [...],
+   215→    "references": [...],
+   216→    "robAssessments": [...],
+   217→    "prismaFlow": {...}
+   218→  }
+   219→}
+   220→```
+   221→
+   222→**Rules:**
+   223→- On **open**: validate against JSON schema (zod). If `formatVersion` is older → run migrations. If corrupt → offer recovery.
+   224→- On **save**: always write current `formatVersion`; never silently downgrade.
+   225→- On every save, first copy current file to `<filename>.revkit.bak` (overwrite).
+   226→- v1 keeps PDFs **separate** (stored as absolute path strings in `study.pdfPath`). v1.1 will add optional PDF-embedding.
+   227→
+   228→## 7. File menu spec
+   229→
+   230→Native Tauri menu (File / Edit / View / Help) wired via `tauri::Menu`.
+   231→
+   232→| Item | Shortcut | Behavior |
+   233→|---|---|---|
+   234→| New Review | ⌘N / Ctrl+N | Close current (save prompt), open New Review Wizard |
+   235→| Open… | ⌘O / Ctrl+O | Native file picker → `.revkit` → load |
+   236→| Open Recent → | — | Submenu: last 10 files (path + last-modified) |
+   237→| Save | ⌘S / Ctrl+S | Save to current path. If untitled → Save As. |
+   238→| Save As… | ⌘⇧S / Ctrl+Shift+S | Native save dialog → write `.revkit` |
+   239→| Import References… | — | File picker → `.ris` or `.bib` → parse → add |
+   240→| Export → Word… | — | Generate `.docx`, native save dialog |
+   241→| Export → CSV… | — | Generate `.zip` of CSVs, native save dialog |
+   242→| Export → PNG (current plot) | — | Save focused plot as `.png` (300 DPI) |
+   243→| Export → SVG (current plot) | — | Save focused plot as `.svg` |
+   244→| Close Project | ⌘W / Ctrl+W | Close (save prompt if dirty) |
+   245→| Quit | ⌘Q / Ctrl+Q | Close all + quit (save prompts) |
+   246→
+   247→**Dirty-state tracking:**
+   248→- Any mutation sets `isDirty = true`.
+   249→- Window close + menu Quit intercept with "Save changes?" dialog (Yes/No/Cancel).
+   250→- Title bar shows `●` prefix when dirty: `● malaria-review.revkit — RevKit`.
+   251→
+   252→**Recent files:**
+   253→- Stored in Tauri `store` plugin (persists across launches).
+   254→- Schema: `recentFiles: [{ path, title, lastOpened }]` (max 10, dedupe).
+   255→- Welcome screen shows them as clickable cards.
+   256→
+   257→## 8. Prisma schema (SQLite)
+   258→
+   259→```prisma
+   260→datasource db {
+   261→  provider = "sqlite"
+   262→  url      = "file::memory:"
+   263→}
+   264→
+   265→generator client {
+   266→  provider = "prisma-client-js"
+   267→}
+   268→
+   269→model Review {
+   270→  id          String       @id
+   271→  title       String
+   272→  researchQuestion String?
+   273→  type        String       // INTERVENTION | DTA | METHODOLOGY | OVERVIEW | FLEXIBLE
+   274→  subType     String?
+   275→  status      String       @default("draft")
+   276→  phase       String       @default("scoping")
+   277→  createdAt   String       // ISO 8601
+   278→  updatedAt   String
+   279→  comparisons Comparison[]
+   280→  studies     Study[]
+   281→  references  Reference[]
+   282→  robAssessments RobAssessment[]
+   283→  prismaFlow  PrismaFlow?
+   284→}
+   285→
+   286→model Comparison {
+   287→  id        String     @id
+   288→  reviewId  String
+   289→  name      String
+   290→  order     Int
+   291→  outcomes  Outcome[]
+   292→}
+   293→
+   294→model Outcome {
+   295→  id            String     @id
+   296→  comparisonId  String
+   297→  name          String
+   298→  dataType      String     // DICHOTOMOUS | CONTINUOUS | OE_V | GIV | DTA_2x2
+   299→  effectMeasure String
+   300→  method        String     // MH | PETO | IV | DL | LOGIT_UNIVARIATE | HSROC
+   301→  model         String     @default("fixed")
+   302→  unit          String?
+   303→  timeFrame     String?
+   304→  order         Int
+   305→  subgroups     Subgroup[]
+   306→  dataPoints    DataPoint[]
+   307→}
+   308→
+   309→model Subgroup {
+   310→  id          String       @id
+   311→  outcomeId   String
+   312→  name        String
+   313→  order       Int
+   314→  dataPoints  DataPoint[]
+   315→}
+   316→
+   317→model DataPoint {
+   318→  id          String   @id
+   319→  outcomeId   String
+   320→  subgroupId  String?
+   321→  studyId     String
+   322→  events1     Int?
+   323→  total1      Int?
+   324→  events2     Int?
+   325→  total2      Int?
+   326→  mean1       Float?
+   327→  sd1         Float?
+   328→  n1          Int?
+   329→  mean2       Float?
+   330→  sd2         Float?
+   331→  n2          Int?
+   332→  oE          Float?
+   333→  v           Float?
+   334→  effect      Float?
+   335→  se          Float?
+   336→  tp          Int?
+   337→  fp          Int?
+   338→  fn          Int?
+   339→  tn          Int?
+   340→  order       Int
+   341→}
+   342→
+   343→model Study {
+   344→  id          String       @id
+   345→  reviewId    String
+   346→  label       String
+   347→  year        Int?
+   348→  authors     String?
+   349→  doi         String?
+   350→  pdfPath     String?
+   351→  status      String       @default("screening")
+   352→  excludeReason String?
+   353→  design      String?
+   354→  picos       String?      // JSON string
+   355→  indexTest   String?
+   356→  referenceStandard String?
+   357→  createdAt   String
+   358→  updatedAt   String
+   359→  dataPoints  DataPoint[]
+   360→  robAssessments RobAssessment[]
+   361→}
+   362→
+   363→model Reference {
+   364→  id              String   @id
+   365→  reviewId        String
+   366→  title           String
+   367→  authors         String
+   368→  year            Int?
+   369→  journal         String?
+   370→  doi             String?
+   371→  pmid            String?
+   372→  rawRis          String?
+   373→  stage           String?
+   374→  decision        String?
+   375→  excludeReason   String?
+   376→}
+   377→
+   378→model RobAssessment {
+   379→  id              String   @id
+   380→  studyId         String
+   381→  tool            String   // ROB2 | ROBINS_I | QUADAS_2
+   382→  domainJudgements String  // JSON string
+   383→  signallingAnswers String // JSON string
+   384→  overallJudgement String?
+   385→  createdAt       String
+   386→  updatedAt       String
+   387→}
+   388→
+   389→model PrismaFlow {
+   390→  id        String @id
+   391→  reviewId  String @unique
+   392→  boxes     String // JSON string of 11-box template
+   393→}
+   394→```
+   395→
+   396→## 9. DTA Calculator spec
+   397→
+   398→Available in two places:
+   399→1. **Standalone** — from sidebar of any DTA review
+   400→2. **Per-study** — calculator icon on each DTA data row
+   401→
+   402→### Layout
+   403→
+   404→```
+   405→┌─────────────────────────────────────────────────┐
+   406→│ Calculator                                  [X] │
+   407→├─────────────────────────────────────────────────┤
+   408→│            Reference standard                    │
+   409→│            +          -          Total           │
+   410→│ Index  +  [TP ____]  [FP ____]  [Test+ = auto]   │
+   411→│ test   -  [FN ____]  [TN ____]  [Test- = auto]   │
+   412→│         Total [D+ = auto] [D- = auto] [N = auto] │
+   413→│                                                  │
+   414→│   Sensitivity: [auto] %   (95% CI [auto]-[auto]) │
+   415→│   Specificity: [auto] %   (95% CI [auto]-[auto]) │
+   416→│   PPV:         [auto] %   (95% CI [auto]-[auto]) │
+   417→│   NPV:         [auto] %   (95% CI [auto]-[auto]) │
+   418→│   LR+:          [auto]   (95% CI [auto]-[auto]) │
+   419→│   LR-:          [auto]   (95% CI [auto]-[auto]) │
+   420→│   Prevalence:  [auto] %   (95% CI [auto]-[auto]) │
+   421→│                                                  │
+   422→│   [?] [Reset] [Copy to clipboard]                │
+   423→│                              [Cancel] [OK]       │
+   424→└─────────────────────────────────────────────────┘
+   425→```
+   426→
+   427→### Formulas
+   428→
+   429→| Metric | Formula | CI method |
+   430→|---|---|---|
+   431→| Sensitivity | TP / (TP + FN) | Wilson |
+   432→| Specificity | TN / (TN + FP) | Wilson |
+   433→| PPV | TP / (TP + FP) | Wilson |
+   434→| NPV | TN / (TN + FN) | Wilson |
+   435→| LR+ | Sens / (1 − Spec) | log-based |
+   436→| LR− | (1 − Sens) / Spec | log-based |
+   437→| Prevalence | (TP + FN) / N | Wilson |
+   438→
+   439→### Behavior
+   440→- **OK** — if per-study, writes TP/FP/FN/TN back to row and closes. If standalone, just closes.
+   441→- **Reset** — clears all inputs.
+   442→- **Copy to clipboard** — copies all 7 metrics as formatted text.
+   443→- **Keyboard** — Tab between cells; Enter = OK; Esc = Cancel.
+   444→- **Validation** — non-negative integers; TP+FP+FN+TN > 0; red border + tooltip if invalid.
+   445→
+   446→### Implementation
+   447→- Component: `apps/web/components/dta/Calculator.tsx`
+   448→- Pure function: `apps/web/lib/dta/calculate.ts` — takes `{tp, fp, fn, tn}`, returns `{sens, spec, ppv, npv, lrPlus, lrMinus, prevalence}` each with `{value, ciLower, ciUpper}`.
+   449→- 100% unit-test coverage required.
+   450→- All client-side — no Tauri calls.
+   451→
+   452→## 10. Critical statistics formulas (for Phase 4)
+   453→
+   454→### Effect measures (per-study, dichotomous 2×2)
+   455→
+   456→| Cell | Layout |
+   457→|---|---|
+   458→| `a` (events treatment) | `b` (non-events treatment) | `n1 = a+b` |
+   459→| `c` (events control) | `d` (non-events control) | `n2 = c+d` |
+   460→| `N = n1+n2` |
+   461→
+   462→**Risk Ratio (RR):**
+   463→```
+   464→RR = (a / n1) / (c / n2)
+   465→log(RR) = log(a/n1) - log(c/n2)
+   466→SE(log RR) = √(1/a - 1/n1 + 1/c - 1/n2)   (Katz)
+   467→```
+   468→Zero-cell: add 0.5 to all cells of any study with a zero cell (for MH/IV; never for Peto).
+   469→
+   470→**Odds Ratio (OR):**
+   471→```
+   472→OR = (a × d) / (b × c)
+   473→log(OR) = log(a) + log(d) - log(b) - log(c)
+   474→SE(log OR) = √(1/a + 1/b + 1/c + 1/d)   (Woolf)
+   475→```
+   476→Zero-cell: add 0.5 to all cells of any study with a zero cell.
+   477→
+   478→**Risk Difference (RD):**
+   479→```
+   480→RD = (a/n1) - (c/n2)
+   481→SE(RD) = √( (a×(n1-a))/n1³ + (c×(n2-c))/n2³ )
+   482→```
+   483→No continuity correction needed.
+   484→
+   485→**Peto OR:**
+   486→```
+   487→O = a
+   488→E = (n1 × (a+c)) / N
+   489→V = (n1 × n2 × (a+c) × (b+d)) / (N² × (N-1))
+   490→logOR_peto = (O - E) / V
+   491→SE(logOR_peto) = 1 / √V
+   492→```
+   493→No continuity correction (Peto handles sparse data natively).
+   494→
+   495→### Continuous — Mean Difference (MD)
+   496→```
+   497→MD = mean1 - mean2
+   498→SE(MD) = √(sd1²/n1 + sd2²/n2)
+   499→```
+   500→
+   501→### Continuous — SMD (Hedges' g)
+   502→```
+   503→SMD_raw = (mean1 - mean2) / spooled
+   504→spooled = √( ((n1-1)×sd1² + (n2-1)×sd2²) / (n1+n2-2) )
+   505→J = 1 - 3/(4×(n1+n2-2) - 1)
+   506→SMD = J × SMD_raw
+   507→SE(SMD) = √( (n1+n2)/(n1×n2) + SMD² / (2×(n1+n2)) )
+   508→```
+   509→
+   510→### Pooling methods
+   511→
+   512→**Inverse Variance (IV, fixed):**
+   513→```
+   514→w_i = 1 / SE_i²
+   515→pooledEffect = Σ(w_i × θ_i) / Σ(w_i)
+   516→pooledSE = √(1 / Σ(w_i))
+   517→CI = pooledEffect ± z × pooledSE   (z=1.959964 for 95%)
+   518→z_score = pooledEffect / pooledSE
+   519→pValue = 2 × (1 - Φ(|z|))
+   520→```
+   521→
+   522→**Mantel-Haenszel (MH):** See Cochrane Handbook v6.4 Ch. 10.4.2 — implement Robins-Greenland SE for OR, Greenland-Robins SE for RR.
+   523→
+   524→**Peto:** `pooledLogOR = Σ(O-E) / Σ(V); SE = 1/√(ΣV)`
+   525→
+   526→**DerSimonian-Laird (DL, random):**
+   527→```
+   528→Q = Σ w_i × (θ_i - θ_fixed)²    (Cochran's Q)
+   529→df = k - 1
+   530→C = Σ w_i - (Σ w_i²)/Σ w_i
+   531→τ² = max(0, (Q - df) / C)
+   532→w_i_random = 1 / (SE_i² + τ²)
+   533→pooledEffect = Σ(w_i_random × θ_i) / Σ(w_i_random)
+   534→pooledSE = √(1 / Σ(w_i_random))
+   535→```
+   536→
+   537→### Heterogeneity
+   538→
+   539→```
+   540→Q = Σ w_i × (θ_i - θ_fixed)²
+   541→df = k - 1
+   542→pValue = 1 - χ²_cdf(Q, df)
+   543→I² = max(0, (Q - df) / Q)        // 0..1 (25% low, 50% mod, 75% high)
+   544→τ² = DL estimator (above)
+   545→H = √(Q / df)
+   546→```
+   547→
+   548→### DTA stats (Phase 4)
+   549→
+   550→**Univariate pooling for Sensitivity (logit transform):**
+   551→```
+   552→For each study: logit_sens = log(TP / FN) ≈ log(TP/(TP+FN) / (1 - TP/(TP+FN)))
+   553→SE(logit_sens) = √(1/TP + 1/FN)
+   554→Pool via IV (fixed) or DL (random).
+   555→Back-transform: sens = 1 / (1 + exp(-logit_sens))
+   556→```
+   557→Same for Specificity (use TN, FP).
+   558→
+   559→**DOR (Diagnostic Odds Ratio):**
+   560→```
+   561→DOR = (TP × TN) / (FP × FN)
+   562→log(DOR) pooled via IV or DL.
+   563→```
+   564→
+   565→**HSROC (simplified):**
+   566→```
+   567→logit(TPR) = α + β × logit(FPR)
+   568→Estimate α (threshold) and β (slope) via weighted least squares.
+   569→If β ≈ 1 → symmetric SROC; summary point at (α/2, α/2).
+   570→```
+   571→(Full bivariate model needs R — out of scope for v1.)
+   572→
+   573→### Forest plot rendering rules
+   574→
+   575→- Box **area** (not side length) ∝ weight: `boxArea_i = (w_i / Σ w_j) × maxBoxArea; boxSide_i = √boxArea_i`.
+   576→- Subgroup + overall diamonds: center at pooled effect, width = CI, height ~12px.
+   577→- **Log axis** for ratio measures (RR/OR/HR/Peto OR); **linear** for differences (RD/MD/SMD).
+   578→- Tick marks: powers of 2 for log (0.125, 0.25, 0.5, 1, 2, 4, 8); round numbers for linear.
+   579→- Null effect line: x=1.0 (log) or x=0.0 (linear).
+   580→- Out-of-range CIs: arrowheads pointing outward.
+   581→
+   582→### Anti-patterns (forbidden)
+   583→
+   584→- ❌ `Math.log(0)` → -Infinity. Apply continuity correction FIRST.
+   585→- ❌ Negative I². Always `max(0, ...)`.
+   586→- ❌ Continuity correction for Peto.
+   587→- ❌ `1 - Φ(z)` for two-tailed p. Use `2 × (1 - Φ(|z|))`.
+   588→- ❌ Compute CI on original scale for ratio measures. Compute on log scale, then `exp()` the bounds.
+   589→
+   590→### Test fixtures
+   591→
+   592→Validate `packages/stats-engine` against R `meta::metabin` / `meta::metacont` outputs. Must match to within 1e-10. Fixture datasets in `packages/stats-engine/test/fixtures/`:
+   593→- `clopidogrel.json` (MH, OR, fixed)
+   594→- `aspirin-mi.json` (Peto, OR, fixed)
+   595→- `bp-meta.json` (IV, MD, random)
+   596→- `ssri-depression.json` (DL, SMD, random)
+   597→- `zero-cell.json` (edge case)
+   598→- `rare-events.json` (Peto edge case)
+   599→- `subgroup-demo.json` (subgroup pooling)
+   600→- `single-study.json` (degenerate)
+   601→- `high-i2.json` (I² > 90%)
+   602→- `dta-malaria.json` (DTA univariate + HSROC)
+   603→
+   604→Each fixture: `{ input, expected, rReference: { package, version, code, output } }`.
+   605→
+   606→---
+   607→
+   608→## 11. THE 6 PHASES
+   609→
+   610→### Phase 0 — Foundation + Tauri Shell (4 days)
+   611→
+   612→**Goal:** Empty Tauri desktop app that launches, shows "Welcome to RevKit", with Next.js + SQLite + Prisma wired and CI green.
+   613→
+   614→**Tasks:**
+   615→1. Create GitHub repo `revkit` (public, MIT).
+   616→2. `pnpm create next-app@latest apps/web --typescript --tailwind --app --turbopack`.
+   617→3. Configure `next.config.ts`:
+   618→   ```typescript
+   619→   export default {
+   620→     output: 'export',
+   621→     images: { unoptimized: true },
+   622→   };
+   623→   ```
+   624→4. Install shadcn/ui + base components: button, card, input, label, dialog, dropdown-menu, command, data-table, sidebar, toast, tooltip, badge, separator.
+   625→5. Set up Prisma with SQLite (`provider = "sqlite"`, `url = "file::memory:"`). Generate client. First migration.
+   626→6. `pnpm create tauri-app@latest apps/desktop --template vanilla-ts`.
+   627→7. Configure `apps/desktop/src-tauri/tauri.conf.json`:
+   628→   - `frontendDist: "../web/out"`
+   629→   - `build.beforeBuildCommand: "cd ../web && pnpm build"`
+   630→   - Window: 1440×900, min 1024×700.
+   631→   - Bundle targets: `msi`, `nsis`, `dmg`, `appimage`, `deb`.
+   632→8. `apps/desktop/src-tauri/src/main.rs` — register plugins: `tauri-plugin-sql`, `tauri-plugin-fs`, `tauri-plugin-dialog`, `tauri-plugin-store`, `tauri-plugin-updater`.
+   633→9. Native menu bar (File / Edit / View / Help) via `tauri::Menu`. File menu items per §7 (most grayed out; New / Open / Quit enabled).
+   634→10. Welcome screen (`apps/web/app/(welcome)/page.tsx`) — "RevKit" logo + "New Review" button + "Open…" button + empty "Recent files" list.
+   635→11. `apps/web/lib/tauri/bridge.ts` — `isTauri()` guard + wrappers for `openProject`, `saveProject`, `pickFile`, `pickSavePath`.
+   636→12. GitHub Actions CI: lint + typecheck + test + build (web) + `pnpm tauri build` smoke test on Ubuntu.
+   637→
+   638→**Acceptance:**
+   639→- [ ] `pnpm tauri dev` launches the desktop app.
+   640→- [ ] Welcome screen renders with "New Review" and "Open…" buttons.
+   641→- [ ] `pnpm tauri build` produces a `.deb` / `.AppImage` (on Linux CI runner).
+   642→- [ ] Native menu bar visible with File menu.
+   643→- [ ] CI green on every PR.
+   644→- [ ] GitHub repo has README + LICENSE (MIT).
+   645→
+   646→---
+   647→
+   648→### Phase 1 — Wizard + File Operations (5 days)
+   649→
+   650→**Goal:** User can create a review of any of the 5 types via the wizard, save as `.revkit`, reopen, see in Recent.
+   651→
+   652→**Tasks:**
+   653→1. **New Review Wizard** (`apps/web/components/reviews/new-review-wizard.tsx`):
+   654→   - Step 1: "Which type of review do you want to create?" — 5 radio buttons (Intervention / DTA / Methodology / Overview / Flexible).
+   655→   - Step 2: Sub-type dropdown (Prognosis / Etiology / Qualitative / None) — disabled if not applicable.
+   656→   - Step 3: Title + research question.
+   657→   - Step 4: Confirm + create.
+   658→   - On finish: initialize empty Review object in memory, mark `isDirty = true`, route to review workspace.
+   659→2. **Tauri commands** (`apps/desktop/src-tauri/src/commands.rs`):
+   660→   - `open_project(path: String) -> Result<String, String>` — reads file, returns JSON string.
+   661→   - `save_project(path: String, json: String) -> Result<(), String>` — atomic write (`.tmp` then rename).
+   662→   - `pick_open_file() -> Result<Option<String>, String>` — native open dialog, `.revkit` filter.
+   663→   - `pick_save_file(default_name: String) -> Result<Option<String>, String>` — native save dialog.
+   664→3. **Project state** (`apps/web/lib/project/state.ts`):
+   665→   - Zustand store: `{ review, currentPath, isDirty, recentFiles }`.
+   666→   - Actions: `newReview`, `openReview`, `saveReview`, `saveAsReview`, `markDirty`, `updateReview`.
+   667→4. **Project serialization** (`apps/web/lib/project/serialize.ts`):
+   668→   - `serializeReview(review): string` — review object → JSON.
+   669→   - `parseReview(json): Review` — JSON → review (zod validation).
+   670→   - `validateFormat(json): { valid, formatVersion }`.
+   671→   - `migrateReview(oldReview): Review` — stub for future migrations.
+   672→5. **Recent files** — Tauri `store` plugin. On Open/Save, prepend path (max 10, dedupe).
+   673→6. **Welcome screen update** — Recent files as cards (title, path, last-modified). Click to open.
+   674→7. **File menu wiring** — New / Open / Save / Save As / Open Recent / Quit all functional.
+   675→8. **Dirty-state tracking** — title bar shows `●` when dirty; close/quit intercepts with "Save changes?".
+   676→9. **Review workspace shell** (`apps/web/app/(review)/layout.tsx`) — left sidebar (Overview / Studies / Comparisons / Risk of Bias / PRISMA / Export / Settings) + top bar (title, type pill, status pill).
+   677→10. **Overview page** — editable title + research question; phase stepper; read-only type display.
+   678→
+   679→**Acceptance:**
+   680→- [ ] Click "New Review" → wizard → pick "DTA" → enter title → finish → workspace opens with empty DTA review.
+   681→- [ ] File → Save → native save dialog → file written as `<title>.revkit`.
+   682→- [ ] File → Open → native open dialog → pick `.revkit` → loads into workspace.
+   683→- [ ] Recent files list shows last opened after restart.
+   684→- [ ] Close window with unsaved changes → "Save changes?" dialog appears.
+   685→- [ ] All 5 review types selectable in wizard.
+   686→
+   687→---
+   688→
+   689→### Phase 2 — Studies & References (5 days)
+   690→
+   691→**Goal:** Import references from RIS, screen them, promote to studies, attach PDFs.
+   692→
+   693→**Tasks:**
+   694→1. **References page** (`apps/web/app/(review)/references/page.tsx`) — TanStack Table: title, authors, year, journal, DOI, stage, decision, actions.
+   695→2. **Import dialog** — drag-drop `.ris` or `.bib`; parse with `@rivanlse/ris-parser` + `@retorquere/bibtex-parser`; dedup by title-hash + DOI; bulk insert into in-memory SQLite.
+   696→3. **Screening UI** — per-reference Include / Exclude / Maybe buttons; exclude-reason dropdown (Cochrane presets: wrong population, wrong intervention, wrong outcome, wrong study design, not RCT, duplicate, withdrawn); bulk actions.
+   697→4. **Promote to study** — button on each included reference; opens study form (label, year, authors, DOI, design dropdown).
+   698→5. **Studies page** — list of promoted studies.
+   699→6. **Study detail page** — PICOS form (JSON fields), references tab, PDF attachment tab (Tauri file picker; stores absolute path in `study.pdfPath`), notes tab.
+   700→7. For **DTA reviews**: study form additionally asks for index test name + reference standard.
+   701→8. **Open PDF button** — calls Tauri `open` command to launch OS default PDF viewer.
+   702→
+   703→**Acceptance:**
+   704→- [ ] Import 200-row RIS → all persist; duplicates caught; toast: "234 imported, 18 duplicates skipped".
+   705→- [ ] Screen 10 references (5 include, 5 exclude) → decisions persist after save+reopen.
+   706→- [ ] Promote 1 reference to study → study appears; reference still linked.
+   707→- [ ] Attach PDF → path stored; "Open PDF" button launches system viewer.
+   708→- [ ] Save + close + reopen → all data restored.
+   709→
+   710→---
+   711→
+   712→### Phase 3 — Data Entry + DTA Calculator (7 days)
+   713→
+   714→**Goal:** Build the comparison/outcome tree, enter data per study, including the DTA calculator and DTA 2×2 data entry.
+   715→
+   716→**Tasks:**
+   717→1. **Sidebar tree** (`apps/web/components/reviews/review-tree.tsx`):
+   718→   - For Intervention/Methodology/Flexible: Comparisons → Outcomes → Subgroups.
+   719→   - For DTA: Tests → Analyses (1 analysis = 1 test threshold group).
+   720→   - For Overview: Linked review IDs.
+   721→   - Drag-drop reorder, context menu, inline rename.
+   722→2. **Outcome creation dialog** — name, data type, effect measure, method, model.
+   723→   - Intervention data types: Dichotomous, Continuous, O-E&V, GIV.
+   724→   - DTA data types: 2×2 (TP/FP/FN/TN).
+   725→3. **Data entry grid** (`apps/web/components/data-entry/data-grid.tsx`):
+   726→   - TanStack Table. Columns by data type:
+   727→     - Dichotomous: Study | Subgroup | Events1 | Total1 | Events2 | Total2
+   728→     - Continuous: Study | Subgroup | Mean1 | SD1 | N1 | Mean2 | SD2 | N2
+   729→     - GIV: Study | Subgroup | Effect | SE
+   730→     - **DTA 2×2**: Study | Subgroup | TP | FP | FN | TN | [🧮 calc button]
+   731→   - Inline editing, validation (events ≤ total, n>0), paste from Excel.
+   732→4. **DTA Calculator** (`apps/web/components/dta/Calculator.tsx`) per §9.
+   733→5. **Live preview plot** at bottom of outcome page — minimal (study rows + pooled diamond). Full plots in Phase 4.
+   734→
+   735→**Acceptance:**
+   736→- [ ] Intervention review: create comparison → outcome → add 5 studies with dichotomous data.
+   737→- [ ] DTA review: create test → analysis → add 5 studies with TP/FP/FN/TN.
+   738→- [ ] DTA Calculator standalone: TP=80, FP=10, FN=20, TN=90 → Sensitivity 80.0%, Specificity 90.0%, PPV 88.9%, NPV 81.8%, LR+ 8.0, LR- 0.22, Prevalence 50.0% (with 95% CIs).
+   739→- [ ] Calculator opened from a study row pre-fills + writes back on OK.
+   740→- [ ] Paste from Excel works for all 4 data types.
+   741→- [ ] Save + close + reopen → data entry grid intact.
+   742→
+   743→---
+   744→
+   745→### Phase 4 — Meta-Analysis Engine + Plots (8 days)
+   746→
+   747→**Goal:** Compute pooled effects, render forest plots (intervention + DTA), funnel plots, SROC plot.
+   748→
+   749→**Tasks:**
+   750→1. **Stats engine** (`packages/stats-engine/` — pure TS, 100% tested) per §10 formulas:
+   751→   - `iv.ts` — Inverse Variance (fixed).
+   752→   - `mh.ts` — Mantel-Haenszel (dichotomous).
+   753→   - `peto.ts` — Peto O-E & V.
+   754→   - `dl.ts` — DerSimonian-Laird (random, wraps any method).
+   755→   - `heterogeneity.ts` — Q, I², τ², H.
+   756→   - `dta.ts` — Univariate logit pooling for Sens & Spec; DOR pooling; HSROC simple regression.
+   757→2. **Forest plot component** (`apps/web/components/forest-plot/ForestPlot.tsx`):
+   758→   - D3 + SVG. Box size ∝ weight. Summary diamonds. Log axis for ratios, linear for differences. I²/Q/τ² annotation. Test for overall effect.
+   759→3. **DTA forest plot** (`apps/web/components/forest-plot/DtaForestPlot.tsx`):
+   760→   - Two side-by-side panels: Sensitivity (95% CI) and Specificity (95% CI).
+   761→   - Study rows + pooled diamond per panel.
+   762→4. **SROC plot** (`apps/web/components/forest-plot/SrocPlot.tsx`):
+   763→   - X-axis: 1 − Specificity. Y-axis: Sensitivity.
+   764→   - Each study = circle (size ∝ sample size).
+   765→   - HSROC summary curve + summary point with 95% confidence region.
+   766→5. **Funnel plot** — intervention only.
+   767→6. **Subgroup analysis** — for intervention reviews.
+   768→7. **Outcome detail page** upgrade — tabs: Forest | Funnel (intervention) / SROC (DTA) | Sensitivity | Subgroups.
+   769→8. **Export plot PNG/SVG** — buttons on each plot; uses Tauri save dialog.
+   770→
+   771→**Acceptance:**
+   772→- [ ] Intervention forest plot matches R `meta::metabin` output on 10 fixture datasets to within 1e-10.
+   773→- [ ] DTA forest plot shows Sens + Spec side by side with correct 95% CIs per study.
+   774→- [ ] SROC plot renders study points + HSROC summary curve + summary point.
+   775→- [ ] Switching fixed → random updates diamond within 100ms.
+   776→- [ ] Subgroup analysis shows subgroup + overall diamonds.
+   777→- [ ] Export PNG + SVG works for all 3 plot types via native save dialog.
+   778→- [ ] Stats-engine coverage: 100% line, 100% branch.
+   779→
+   780→---
+   781→
+   782→### Phase 5 — Risk of Bias + PRISMA + Export (7 days)
+   783→
+   784→**Goal:** RoB assessments (3 tools), PRISMA flow, Word + CSV export.
+   785→
+   786→**Tasks:**
+   787→1. **RoB 2** (RCTs, 5 domains per Cochrane BMJ 2019;366:l4898):
+   788→   - D1: Randomization process
+   789→   - D2: Deviations from intended interventions
+   790→   - D3: Missing outcome data
+   791→   - D4: Measurement of the outcome
+   792→   - D5: Selection of the reported result
+   793→   - Algorithm-mapped judgements: Low / Some concerns / High.
+   794→2. **ROBINS-I** (non-randomized, 7 domains per BMJ 2016;355:i4919, V2 Nov 2024):
+   795→   - D1: Confounding
+   796→   - D2: Selection of participants
+   797→   - D3: Classification of interventions
+   798→   - D4: Deviations from intended interventions
+   799→   - D5: Missing data
+   800→   - D6: Measurement of outcomes
+   801→   - D7: Selection of the reported result
+   802→   - Judgements: Low / Moderate / Serious / Critical / No information.
+   803→3. **QUADAS-2** (DTA, 4 domains):
+   804→   - D1: Patient selection
+   805→   - D2: Index test
+   806→   - D3: Reference standard
+   807→   - D4: Flow and timing
+   808→   - Judgements: Low / High / Unclear.
+   809→4. **RoB UI** — per-study assessment editor; algorithm computes overall from SQs; reviewer can override with reason.
+   810→5. **Traffic-light plot** — per study, colored circles per domain.
+   811→6. **Summary plot** — across studies, stacked bars per domain.
+   812→7. **PRISMA 2020 flow editor** (`apps/web/components/prisma-flow/PrismaFlowEditor.tsx`) — React-Flow with 11 canonical boxes:
+   813→   - Identification: Records from databases/registers (n=); Records from other sources (n=); Records removed before screening — Duplicates (n=) + Auto-ineligible (n=)
+   814→   - Screening: Records screened (n=); Records excluded (n=)
+   815→   - Eligibility: Reports sought for retrieval (n=); Reports not retrieved (n=); Reports assessed for eligibility (n=); Reports excluded with reasons (n=)
+   816→   - Included: Studies included in review (n=); Studies included in meta-analysis (n=)
+   817→   - Auto-count mode (pulls from references/stages); manual override; export PNG/SVG.
+   818→8. **Word export** (`apps/web/lib/export/docx.ts`) — uses `docx` library. Title page, abstract, background, methods, results (with embedded plots as PNG), discussion, references. Cochrane-style typography (Times New Roman 12pt, 1.5 line height, justified, bold headings).
+   819→   - Tauri command `export_docx(json) -> bytes` writes file via Tauri save dialog.
+   820→9. **CSV export** — ZIP of `studies.csv`, `data-points.csv`, `rob-assessments.csv`, `prisma-flow.json`, `narrative.md`. Tauri save dialog.
+   821→
+   822→**Acceptance:**
+   823→- [ ] RoB 2 algorithm matches official Excel tool v22-Aug-2019 on every signalling-question combination.
+   824→- [ ] ROBINS-I 7 domains work.
+   825→- [ ] QUADAS-2 4 domains work for DTA reviews.
+   826→- [ ] Traffic-light + summary plots render correctly.
+   827→- [ ] PRISMA editor renders 11 canonical boxes with auto-counts.
+   828→- [ ] Word export opens in Word + LibreOffice without errors; includes embedded forest plots.
+   829→- [ ] CSV export round-trips (export → re-import → identical state).
+   830→- [ ] All exports via native save dialogs (no browser download prompt).
+   831→
+   832→---
+   833→
+   834→### Phase 6 — Polish + Sign + Release (5 days)
+   835→
+   836→**Goal:** Production-ready, signed binaries, GitHub Release v0.1.0.
+   837→
+   838→**Tasks:**
+   839→1. **E2E tests** (Playwright + Tauri):
+   840→   - Launch app → New Review (DTA) → import references → screen → promote to study → enter TP/FP/FN/TN → run meta-analysis → assess QUADAS-2 → build PRISMA → export Word → save `.revkit` → close → reopen → state intact.
+   841→2. **Performance audit** — render 50-study forest plot < 100ms; save 1000-study review < 500ms.
+   842→3. **Sentry** error tracking (frontend JS errors + Rust panics via `sentry-rust`).
+   843→4. **Auto-update setup**:
+   844→   - `tauri-plugin-updater` checks `https://github.com/you/revkit/releases/latest/download/latest.json` on launch.
+   845→   - Generate signing key: `pnpm tauri signer generate -w ~/.tauri/revkit.key`.
+   846→   - Store `TAURI_SIGNING_PRIVATE_KEY` + password in GitHub Actions secrets.
+   847→5. **Code signing**:
+   848→   - Windows: Azure Trusted Signing (or self-signed for v0.1; "Unknown publisher" warning acceptable).
+   849→   - macOS: Apple Developer ID + notarization via `xcrun notarytool` in CI.
+   850→   - Linux: AppImage (no signing); `.deb` signed with GPG.
+   851→6. **Release pipeline** (`.github/workflows/release.yml`):
+   852→   - Triggers on tag push `v*`.
+   853→   - Matrix builds on `ubuntu-latest`, `macos-latest`, `windows-latest`.
+   854→   - Uses `tauri-apps/tauri-action@v0`.
+   855→   - Uploads 5 artifacts (`.msi`, `.exe`, `.dmg`, `.AppImage`, `.deb`) + `latest.json` manifest to GitHub Releases.
+   856→7. **README** — quickstart, screenshots, install instructions per OS, link to docs.
+   857→8. **LICENSE** (MIT), **CONTRIBUTING.md**, **CODE_OF_CONDUCT.md**, **SECURITY.md**.
+   858→9. **GitHub repo public**. Tag `v0.1.0`. Publish Release with download links.
+   859→10. **Launch announcement** — HN Show HN, Reddit r/sysreviews + r/epidemiology, Mastodon, LinkedIn, Cochrane forum.
+   860→
+   861→**Acceptance:**
+   862→- [ ] All E2E tests green on every PR.
+   863→- [ ] Save 1000-study review < 500ms.
+   864→- [ ] No Sentry errors in last 24h.
+   865→- [ ] Auto-update: install v0.1.0, push v0.1.1 tag, relaunch → app prompts "Update available?".
+   866→- [ ] GitHub Release v0.1.0 has 5 downloadable binaries.
+   867→- [ ] Windows `.exe` installs without errors (Windows 10 + 11).
+   868→- [ ] macOS `.dmg` opens + installs (Intel + Apple Silicon).
+   869→- [ ] Linux `.AppImage` runs (Ubuntu 22.04 + 24.04).
+   870→- [ ] GitHub repo public with all 4 governance files.
+   871→- [ ] At least 3 beta users have installed + created a review.
+   872→- [ ] Launch announcement posted to 3+ channels.
+   873→
+   874→---
+   875→
+   876→## 12. Calendar (realistic, 4 hrs/day, 5 days/week)
+   877→
+   878→| Week | Phase | Days | What ships |
+   879→|---|---|---|---|
+   880→| 1 | Phase 0 | 1-4 | Tauri shell launches, welcome screen |
+   881→| 1-2 | Phase 1 | 5-9 | Wizard + File menu + .revkit save/load |
+   882→| 2-3 | Phase 2 | 10-14 | Studies + references + PDF attach |
+   883→| 3-4 | Phase 3 | 15-21 | Data entry + DTA Calculator |
+   884→| 5-6 | Phase 4 | 22-29 | Stats engine + forest + DTA + SROC plots |
+   885→| 6-7 | Phase 5 | 30-36 | RoB + PRISMA + Word export |
+   886→| 8 | Phase 6 | 37-41 | Polish + signing + GitHub Release v0.1.0 |
+   887→
+   888→**Total: 41 working days = ~8.5 weeks part-time / ~4.5 weeks full-time.**
+   889→
+   890→**Buffer:** Build in 20% buffer. If Phase 4 takes 10 days instead of 8, push launch by 2 days. Don't cut acceptance criteria.
+   891→
+   892→---
+   893→
+   894→## 13. Troubleshooting (when things break)
+   895→
+   896→| Symptom | Fix |
+   897→|---|---|
+   898→| GLM-5.2 gives broken code | Paste FULL error back. Say "fix only the broken part." Don't regenerate whole phase. |
+   899→| GLM-5.2 forgets earlier decisions | Start fresh chat. Re-paste this entire master prompt. Add brief context summary. |
+   900→| `pnpm install` peer dep conflict | `pnpm install --no-frozen-lockfile`. If still failing, ask GLM-5.2 which version to pin. |
+   901→| Prisma migration drift | `pnpm prisma migrate reset` then re-run. |
+   902→| Tauri build fails on Rust error | Read Rust error carefully. Most common: missing plugin registration in `main.rs`, or wrong plugin version in `Cargo.toml`. |
+   903→| WebView2 missing on Windows | Tauri bootstrapper auto-installs; if not, document manual install step in README. |
+   904→| macOS notarization fails | Need Apple Developer ID ($99/year) + app-specific password. Set in GitHub secrets: `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`. |
+   905→| Stats don't match R | Add debug logs printing every intermediate value. Compare with R `meta` verbose output. Find divergence. |
+   906→| `.revkit` file won't open | Check JSON validity. If schema mismatch, run migration. If corrupt, offer to attempt recovery from `.bak`. |
+   907→| Stuck 3+ hours | Stop. Take a walk. Re-read the phase's tasks. Worst case: skip the feature, mark TODO, move on. Come back later. |
+   908→
+   909→---
+   910→
+   911→## 14. How to execute this plan (instructions to GLM-5.2)
+   912→
+   913→When I say **"Start Phase N"**, you will:
+   914→
+   915→1. Read the Phase N spec above (§11).
+   916→2. Output the code in labeled code blocks (full file path as first comment).
+   917→3. Tell me which files to create/modify.
+   918→4. Tell me which commands to run (`pnpm install`, `pnpm prisma migrate dev --name ...`, etc.).
+   919→5. After I confirm the code is in place and tests pass, run the acceptance checklist and report pass/fail per item.
+   920→6. If any item fails, propose a minimal fix (don't regenerate the whole phase).
+   921→7. When all items pass, tell me to commit + tag: `git commit -m "feat(phase-N): <summary>" && git tag phase-N-complete`.
+   922→8. Wait for me to say "Start Phase N+1".
+   923→
+   924→**Begin Phase 0 now.** Output the foundation code (Phase 0 tasks 1-12 from §11). Use the strict rules from the top of this file.
+   925→
+   926→---
+   927→
+   928→*End of master prompt. Single source of truth. Paste into a fresh chat to (re)start the build at any phase.*
+   929→

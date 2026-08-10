@@ -1,0 +1,1393 @@
+     1→// src/components/revkit/comparisons-page.tsx
+     2→//
+     3→// Comparisons & Outcomes page. Two-column layout:
+     4→//   ┌──────────────┬───────────────────────────────────────────────┐
+     5→//   │ 280px tree   │  Selected outcome detail (header + tabs)      │
+     6→//   │ Comparisons   │  Data Entry | Forest | Funnel/SROC | Subgps  │
+     7→//   └──────────────┴───────────────────────────────────────────────┘
+     8→//
+     9→// All mutations go through the Zustand store. The Data Entry tab renders the
+    10→// `DataGrid` component (data-entry/data-grid.tsx). The Forest/Funnel/SROC plot
+    11→// tabs render the ForestPlot family stub from forest-plot/forest-plot.tsx
+    12→// (full D3 + SVG implementation arrives in Task 5-a).
+    13→
+    14→"use client";
+    15→
+    16→import { useMemo, useState } from "react";
+    17→import {
+    18→  ChevronRight,
+    19→  ChevronDown,
+    20→  Plus,
+    21→  Pencil,
+    22→  Trash2,
+    23→  GitCompare,
+    24→  FolderTree,
+    25→} from "lucide-react";
+    26→import { toast } from "sonner";
+    27→
+    28→import { Button } from "@/components/ui/button";
+    29→import { Card } from "@/components/ui/card";
+    30→import { Badge } from "@/components/ui/badge";
+    31→import { Input } from "@/components/ui/input";
+    32→import { Label } from "@/components/ui/label";
+    33→import {
+    34→  Select,
+    35→  SelectContent,
+    36→  SelectItem,
+    37→  SelectTrigger,
+    38→  SelectValue,
+    39→} from "@/components/ui/select";
+    40→import {
+    41→  Dialog,
+    42→  DialogContent,
+    43→  DialogDescription,
+    44→  DialogFooter,
+    45→  DialogHeader,
+    46→  DialogTitle,
+    47→} from "@/components/ui/dialog";
+    48→import {
+    49→  AlertDialog,
+    50→  AlertDialogAction,
+    51→  AlertDialogCancel,
+    52→  AlertDialogContent,
+    53→  AlertDialogDescription,
+    54→  AlertDialogFooter,
+    55→  AlertDialogHeader,
+    56→  AlertDialogTitle,
+    57→} from "@/components/ui/alert-dialog";
+    58→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    59→import { Separator } from "@/components/ui/separator";
+    60→import { cn } from "@/lib/utils";
+    61→
+    62→import { useReviewStore } from "@/lib/project/state";
+    63→import type {
+    64→  Comparison,
+    65→  DataType,
+    66→  EffectMeasure,
+    67→  MethodType,
+    68→  ModelType,
+    69→  Outcome,
+    70→} from "@/lib/types";
+    71→import { DataGrid } from "@/components/data-entry/data-grid";
+    72→import { ForestPlot } from "@/components/forest-plot/forest-plot";
+    73→import { FunnelPlot } from "@/components/forest-plot/funnel-plot";
+    74→import { SrocPlot } from "@/components/forest-plot/sroc-plot";
+    75→
+    76→// --- Defaults & option matrix per dataType -----------------------------------
+    77→
+    78→const DEFAULTS: Record<
+    79→  DataType,
+    80→  { effectMeasure: EffectMeasure; method: MethodType; model: ModelType }
+    81→> = {
+    82→  DICHOTOMOUS: { effectMeasure: "OR", method: "MH", model: "fixed" },
+    83→  CONTINUOUS: { effectMeasure: "MD", method: "IV", model: "fixed" },
+    84→  DTA_2x2: {
+    85→    effectMeasure: "SENSITIVITY",
+    86→    method: "LOGIT_UNIVARIATE",
+    87→    model: "random",
+    88→  },
+    89→  OE_V: { effectMeasure: "PETO_OR", method: "PETO", model: "fixed" },
+    90→  GIV: { effectMeasure: "OR", method: "IV", model: "fixed" },
+    91→};
+    92→
+    93→const METHOD_OPTIONS: Record<DataType, MethodType[]> = {
+    94→  DICHOTOMOUS: ["MH", "PETO", "IV", "DL"],
+    95→  CONTINUOUS: ["IV", "DL"],
+    96→  OE_V: ["PETO"],
+    97→  GIV: ["IV", "DL"],
+    98→  DTA_2x2: ["LOGIT_UNIVARIATE", "HSROC"],
+    99→};
+   100→
+   101→const EFFECT_OPTIONS: Record<DataType, EffectMeasure[]> = {
+   102→  DICHOTOMOUS: ["OR", "RR", "RD", "PETO_OR"],
+   103→  CONTINUOUS: ["MD", "SMD"],
+   104→  OE_V: ["PETO_OR"],
+   105→  GIV: ["OR", "RR", "RD", "MD", "SMD"],
+   106→  DTA_2x2: ["SENSITIVITY", "SPECIFICITY", "DOR"],
+   107→};
+   108→
+   109→const DATA_TYPE_LABELS: Record<DataType, string> = {
+   110→  DICHOTOMOUS: "Dichotomous",
+   111→  CONTINUOUS: "Continuous",
+   112→  OE_V: "O-E & V",
+   113→  GIV: "Generic IV",
+   114→  DTA_2x2: "DTA 2×2",
+   115→};
+   116→
+   117→const SHORT_TYPE_LABELS: Record<DataType, string> = {
+   118→  DICHOTOMOUS: "Dich",
+   119→  CONTINUOUS: "Cont",
+   120→  OE_V: "O-E",
+   121→  GIV: "GIV",
+   122→  DTA_2x2: "DTA",
+   123→};
+   124→
+   125→const METHOD_LABELS: Record<MethodType, string> = {
+   126→  MH: "Mantel-Haenszel",
+   127→  PETO: "Peto",
+   128→  IV: "Inverse Variance",
+   129→  DL: "DerSimonian-Laird",
+   130→  LOGIT_UNIVARIATE: "Logit Univariate",
+   131→  HSROC: "HSROC",
+   132→};
+   133→
+   134→const EFFECT_LABELS: Record<EffectMeasure, string> = {
+   135→  RR: "Risk Ratio",
+   136→  OR: "Odds Ratio",
+   137→  RD: "Risk Difference",
+   138→  PETO_OR: "Peto Odds Ratio",
+   139→  MD: "Mean Difference",
+   140→  SMD: "Std. Mean Diff.",
+   141→  DOR: "Diagnostic OR",
+   142→  SENSITIVITY: "Sensitivity",
+   143→  SPECIFICITY: "Specificity",
+   144→};
+   145→
+   146→const ALL_DATA_TYPES: DataType[] = [
+   147→  "DICHOTOMOUS",
+   148→  "CONTINUOUS",
+   149→  "OE_V",
+   150→  "GIV",
+   151→  "DTA_2x2",
+   152→];
+   153→
+   154→// --- Main page --------------------------------------------------------------
+   155→
+   156→export function ComparisonsPage() {
+   157→  const review = useReviewStore((s) => s.review);
+   158→  const addComparison = useReviewStore((s) => s.addComparison);
+   159→  const deleteComparison = useReviewStore((s) => s.deleteComparison);
+   160→  const renameComparison = useReviewStore((s) => s.renameComparison);
+   161→  const deleteOutcome = useReviewStore((s) => s.deleteOutcome);
+   162→  const addSubgroup = useReviewStore((s) => s.addSubgroup);
+   163→  const renameSubgroup = useReviewStore((s) => s.renameSubgroup);
+   164→  const deleteSubgroup = useReviewStore((s) => s.deleteSubgroup);
+   165→
+   166→  const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
+   167→  const [expandedComparisons, setExpandedComparisons] = useState<Set<string>>(
+   168→    new Set(),
+   169→  );
+   170→
+   171→  // Inline add-comparison form
+   172→  const [newComparisonName, setNewComparisonName] = useState("");
+   173→
+   174→  // Add/Edit outcome dialog state
+   175→  const [outcomeDialog, setOutcomeDialog] = useState<{
+   176→    mode: "add" | "edit";
+   177→    comparisonId?: string;
+   178→    outcome?: Outcome;
+   179→  } | null>(null);
+   180→
+   181→  // Pending delete (single AlertDialog handles all three kinds)
+   182→  const [pendingDelete, setPendingDelete] = useState<
+   183→    | { kind: "comparison" | "outcome" | "subgroup"; id: string; label: string }
+   184→    | null
+   185→  >(null);
+   186→
+   187→  // Inline rename state (comparison)
+   188→  const [renamingComparison, setRenamingComparison] = useState<string | null>(
+   189→    null,
+   190→  );
+   191→  const [renameComparisonValue, setRenameComparisonValue] = useState("");
+   192→
+   193→  // Inline add-subgroup form state (per outcome id)
+   194→  const [addSubgroupFor, setAddSubgroupFor] = useState<string | null>(null);
+   195→  const [newSubgroupName, setNewSubgroupName] = useState("");
+   196→
+   197→  // Inline rename subgroup
+   198→  const [renamingSubgroup, setRenamingSubgroup] = useState<string | null>(null);
+   199→  const [renameSubgroupValue, setRenameSubgroupValue] = useState("");
+   200→
+   201→  const comparisons = review?.comparisons ?? [];
+   202→
+   203→  // Find the selected outcome object (live from store so edits flow back).
+   204→  const selectedOutcome = useMemo<Outcome | null>(() => {
+   205→    if (!selectedOutcomeId) return null;
+   206→    for (const c of comparisons) {
+   207→      const o = c.outcomes.find((o2) => o2.id === selectedOutcomeId);
+   208→      if (o) return o;
+   209→    }
+   210→    return null;
+   211→  }, [comparisons, selectedOutcomeId]);
+   212→
+   213→  // Auto-expand the comparison that owns the selected outcome (handled in
+   214→  // `handleSelectOutcome` below — no effect needed).
+   215→  // Clear-selection-on-delete is also handled in the delete handler.
+   216→
+   217→  if (!review) return null;
+   218→
+   219→  function handleAddComparison() {
+   220→    const name = newComparisonName.trim();
+   221→    if (!name) {
+   222→      toast.error("Name required");
+   223→      return;
+   224→    }
+   225→    const id = addComparison(name);
+   226→    setNewComparisonName("");
+   227→    setExpandedComparisons((prev) => new Set(prev).add(id));
+   228→  }
+   229→
+   230→  function confirmDelete() {
+   231→    if (!pendingDelete) return;
+   232→    if (pendingDelete.kind === "comparison") {
+   233→      deleteComparison(pendingDelete.id);
+   234→    } else if (pendingDelete.kind === "outcome") {
+   235→      deleteOutcome(pendingDelete.id);
+   236→      if (selectedOutcomeId === pendingDelete.id) setSelectedOutcomeId(null);
+   237→    } else {
+   238→      deleteSubgroup(pendingDelete.id);
+   239→    }
+   240→    toast.success("Deleted");
+   241→    setPendingDelete(null);
+   242→  }
+   243→
+   244→  function commitComparisonRename(id: string) {
+   245→    const name = renameComparisonValue.trim();
+   246→    if (!name) {
+   247→      setRenamingComparison(null);
+   248→      return;
+   249→    }
+   250→    renameComparison(id, name);
+   251→    setRenamingComparison(null);
+   252→  }
+   253→
+   254→  function commitSubgroupAdd(outcomeId: string) {
+   255→    const name = newSubgroupName.trim();
+   256→    if (!name) {
+   257→      setAddSubgroupFor(null);
+   258→      return;
+   259→    }
+   260→    addSubgroup(outcomeId, name);
+   261→    setNewSubgroupName("");
+   262→    setAddSubgroupFor(null);
+   263→  }
+   264→
+   265→  function commitSubgroupRename(id: string) {
+   266→    const name = renameSubgroupValue.trim();
+   267→    if (!name) {
+   268→      setRenamingSubgroup(null);
+   269→      return;
+   270→    }
+   271→    renameSubgroup(id, name);
+   272→    setRenamingSubgroup(null);
+   273→  }
+   274→
+   275→  /** Select an outcome and ensure its parent comparison is expanded. */
+   276→  function handleSelectOutcome(id: string, comparisonId: string) {
+   277→    setSelectedOutcomeId(id);
+   278→    setExpandedComparisons((prev) => {
+   279→      if (prev.has(comparisonId)) return prev;
+   280→      const next = new Set(prev);
+   281→      next.add(comparisonId);
+   282→      return next;
+   283→    });
+   284→  }
+   285→
+   286→  return (
+   287→    <div className="space-y-4">
+   288→      <div>
+   289→        <h2 className="text-2xl font-bold tracking-tight">Comparisons & Outcomes</h2>
+   290→        <p className="text-sm text-muted-foreground mt-1">
+   291→          Build the analysis tree: comparisons → outcomes → subgroups. Enter data
+   292→          per study on the right.
+   293→        </p>
+   294→      </div>
+   295→
+   296→      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-start">
+   297→        {/* LEFT — Tree */}
+   298→        <Card className="p-3 lg:sticky lg:top-4">
+   299→          <div className="flex items-center justify-between mb-2">
+   300→            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+   301→              <FolderTree className="size-4 text-emerald-600" />
+   302→              Comparisons
+   303→            </h3>
+   304→          </div>
+   305→
+   306→          {/* Add comparison inline form */}
+   307→          <div className="flex gap-1 mb-2">
+   308→            <Input
+   309→              value={newComparisonName}
+   310→              onChange={(e) => setNewComparisonName(e.target.value)}
+   311→              placeholder="New comparison name…"
+   312→              className="h-8 text-sm"
+   313→              onKeyDown={(e) => {
+   314→                if (e.key === "Enter") handleAddComparison();
+   315→                if (e.key === "Escape") setNewComparisonName("");
+   316→              }}
+   317→            />
+   318→            <Button
+   319→              size="icon"
+   320→              variant="default"
+   321→              className="h-8 w-8 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+   322→              onClick={handleAddComparison}
+   323→              title="Add comparison"
+   324→            >
+   325→              <Plus className="size-4" />
+   326→            </Button>
+   327→          </div>
+   328→
+   329→          <Separator className="mb-2" />
+   330→
+   331→          {comparisons.length === 0 ? (
+   332→            <div className="text-center py-6 text-xs text-muted-foreground">
+   333→              No comparisons yet.
+   334→              <br />
+   335→              Add one above to get started.
+   336→            </div>
+   337→          ) : (
+   338→            <div className="space-y-0.5 max-h-[60vh] overflow-y-auto -mx-1 px-1">
+   339→              {comparisons.map((c) => (
+   340→                <ComparisonNode
+   341→                  key={c.id}
+   342→                  comparison={c}
+   343→                  expanded={expandedComparisons.has(c.id)}
+   344→                  onToggleExpand={() =>
+   345→                    setExpandedComparisons((prev) => {
+   346→                      const next = new Set(prev);
+   347→                      if (next.has(c.id)) next.delete(c.id);
+   348→                      else next.add(c.id);
+   349→                      return next;
+   350→                    })
+   351→                  }
+   352→                  selectedOutcomeId={selectedOutcomeId}
+   353→                  onSelectOutcome={handleSelectOutcome}
+   354→                  onAddOutcome={() =>
+   355→                    setOutcomeDialog({
+   356→                      mode: "add",
+   357→                      comparisonId: c.id,
+   358→                    })
+   359→                  }
+   360→                  onEditOutcome={(o) =>
+   361→                    setOutcomeDialog({ mode: "edit", outcome: o })
+   362→                  }
+   363→                  onDeleteComparison={() =>
+   364→                    setPendingDelete({
+   365→                      kind: "comparison",
+   366→                      id: c.id,
+   367→                      label: c.name,
+   368→                    })
+   369→                  }
+   370→                  onDeleteOutcome={(o) =>
+   371→                    setPendingDelete({
+   372→                      kind: "outcome",
+   373→                      id: o.id,
+   374→                      label: o.name,
+   375→                    })
+   376→                  }
+   377→                  onRenameComparison={() => {
+   378→                    setRenameComparisonValue(c.name);
+   379→                    setRenamingComparison(c.id);
+   380→                  }}
+   381→                  renamingComparisonId={renamingComparison}
+   382→                  renameComparisonValue={renameComparisonValue}
+   383→                  onRenameComparisonValueChange={setRenameComparisonValue}
+   384→                  onCommitComparisonRename={() => commitComparisonRename(c.id)}
+   385→                  onCancelComparisonRename={() => setRenamingComparison(null)}
+   386→                  addSubgroupFor={addSubgroupFor}
+   387→                  newSubgroupName={newSubgroupName}
+   388→                  onNewSubgroupNameChange={setNewSubgroupName}
+   389→                  onStartAddSubgroup={(outcomeId) => {
+   390→                    setAddSubgroupFor(outcomeId);
+   391→                    setNewSubgroupName("");
+   392→                  }}
+   393→                  onCommitAddSubgroup={() => commitSubgroupAdd(addSubgroupFor ?? "")}
+   394→                  onCancelAddSubgroup={() => setAddSubgroupFor(null)}
+   395→                  onDeleteSubgroup={(sg) =>
+   396→                    setPendingDelete({
+   397→                      kind: "subgroup",
+   398→                      id: sg.id,
+   399→                      label: sg.name,
+   400→                    })
+   401→                  }
+   402→                  renamingSubgroupId={renamingSubgroup}
+   403→                  renameSubgroupValue={renameSubgroupValue}
+   404→                  onRenameSubgroupValueChange={setRenameSubgroupValue}
+   405→                  onStartRenameSubgroup={(sg) => {
+   406→                    setRenameSubgroupValue(sg.name);
+   407→                    setRenamingSubgroup(sg.id);
+   408→                  }}
+   409→                  onCommitRenameSubgroup={() => commitSubgroupRename(renamingSubgroup ?? "")}
+   410→                  onCancelRenameSubgroup={() => setRenamingSubgroup(null)}
+   411→                />
+   412→              ))}
+   413→            </div>
+   414→          )}
+   415→        </Card>
+   416→
+   417→        {/* RIGHT — Selected outcome detail */}
+   418→        {!selectedOutcome ? (
+   419→          <EmptyDetail comparisonsCount={comparisons.length} />
+   420→        ) : (
+   421→          <OutcomeDetail
+   422→            outcome={selectedOutcome}
+   423→            onEdit={() =>
+   424→              setOutcomeDialog({ mode: "edit", outcome: selectedOutcome })
+   425→            }
+   426→            onAddSubgroup={() => {
+   427→              setAddSubgroupFor(selectedOutcome.id);
+   428→              setNewSubgroupName("");
+   429→            }}
+   430→            addSubgroupOpen={addSubgroupFor === selectedOutcome.id}
+   431→            newSubgroupName={newSubgroupName}
+   432→            onNewSubgroupNameChange={setNewSubgroupName}
+   433→            onCommitAddSubgroup={() => commitSubgroupAdd(selectedOutcome.id)}
+   434→            onCancelAddSubgroup={() => setAddSubgroupFor(null)}
+   435→            renamingSubgroupId={renamingSubgroup}
+   436→            renameSubgroupValue={renameSubgroupValue}
+   437→            onRenameSubgroupValueChange={setRenameSubgroupValue}
+   438→            onStartRenameSubgroup={(sg) => {
+   439→              setRenameSubgroupValue(sg.name);
+   440→              setRenamingSubgroup(sg.id);
+   441→            }}
+   442→            onCommitRenameSubgroup={() => commitSubgroupRename(renamingSubgroup ?? "")}
+   443→            onCancelRenameSubgroup={() => setRenamingSubgroup(null)}
+   444→            onDeleteSubgroup={(sg) =>
+   445→              setPendingDelete({
+   446→                kind: "subgroup",
+   447→                id: sg.id,
+   448→                label: sg.name,
+   449→              })
+   450→            }
+   451→          />
+   452→        )}
+   453→      </div>
+   454→
+   455→      {/* Add / Edit outcome dialog */}
+   456→      {outcomeDialog && (
+   457→        <OutcomeFormDialog
+   458→          mode={outcomeDialog.mode}
+   459→          outcome={outcomeDialog.outcome}
+   460→          comparisonId={outcomeDialog.comparisonId}
+   461→          onClose={() => setOutcomeDialog(null)}
+   462→        />
+   463→      )}
+   464→
+   465→      {/* Delete confirmation */}
+   466→      <AlertDialog
+   467→        open={!!pendingDelete}
+   468→        onOpenChange={(o) => {
+   469→          if (!o) setPendingDelete(null);
+   470→        }}
+   471→      >
+   472→        <AlertDialogContent>
+   473→          <AlertDialogHeader>
+   474→            <AlertDialogTitle>Delete {pendingDelete?.kind}?</AlertDialogTitle>
+   475→            <AlertDialogDescription>
+   476→              This will permanently delete{" "}
+   477→              <span className="font-medium text-foreground">
+   478→                {pendingDelete?.label}
+   479→              </span>
+   480→              {pendingDelete?.kind === "comparison" &&
+   481→                " and all of its outcomes and data points."}
+   482→              {pendingDelete?.kind === "outcome" &&
+   483→                " and all of its data points and subgroups."}
+   484→              {pendingDelete?.kind === "subgroup" &&
+   485→                " and its data points."}
+   486→              {" "}This cannot be undone.
+   487→            </AlertDialogDescription>
+   488→          </AlertDialogHeader>
+   489→          <AlertDialogFooter>
+   490→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+   491→            <AlertDialogAction
+   492→              onClick={confirmDelete}
+   493→              className="bg-rose-600 hover:bg-rose-700 text-white"
+   494→            >
+   495→              Delete
+   496→            </AlertDialogAction>
+   497→          </AlertDialogFooter>
+   498→        </AlertDialogContent>
+   499→      </AlertDialog>
+   500→    </div>
+   501→  );
+   502→}
+   503→
+   504→// --- Comparison tree node ----------------------------------------------------
+   505→
+   506→interface ComparisonNodeProps {
+   507→  comparison: Comparison;
+   508→  expanded: boolean;
+   509→  onToggleExpand: () => void;
+   510→  selectedOutcomeId: string | null;
+   511→  onSelectOutcome: (id: string, comparisonId: string) => void;
+   512→  onAddOutcome: () => void;
+   513→  onEditOutcome: (o: Outcome) => void;
+   514→  onDeleteComparison: () => void;
+   515→  onDeleteOutcome: (o: Outcome) => void;
+   516→  onRenameComparison: () => void;
+   517→  renamingComparisonId: string | null;
+   518→  renameComparisonValue: string;
+   519→  onRenameComparisonValueChange: (v: string) => void;
+   520→  onCommitComparisonRename: () => void;
+   521→  onCancelComparisonRename: () => void;
+   522→  addSubgroupFor: string | null;
+   523→  newSubgroupName: string;
+   524→  onNewSubgroupNameChange: (v: string) => void;
+   525→  onStartAddSubgroup: (outcomeId: string) => void;
+   526→  onCommitAddSubgroup: () => void;
+   527→  onCancelAddSubgroup: () => void;
+   528→  onDeleteSubgroup: (sg: { id: string; name: string }) => void;
+   529→  renamingSubgroupId: string | null;
+   530→  renameSubgroupValue: string;
+   531→  onRenameSubgroupValueChange: (v: string) => void;
+   532→  onStartRenameSubgroup: (sg: { id: string; name: string }) => void;
+   533→  onCommitRenameSubgroup: () => void;
+   534→  onCancelRenameSubgroup: () => void;
+   535→}
+   536→
+   537→function ComparisonNode(props: ComparisonNodeProps) {
+   538→  const {
+   539→    comparison: c,
+   540→    expanded,
+   541→    onToggleExpand,
+   542→    selectedOutcomeId,
+   543→    onSelectOutcome,
+   544→    onAddOutcome,
+   545→    onEditOutcome,
+   546→    onDeleteComparison,
+   547→    onDeleteOutcome,
+   548→    onRenameComparison,
+   549→    renamingComparisonId,
+   550→    renameComparisonValue,
+   551→    onRenameComparisonValueChange,
+   552→    onCommitComparisonRename,
+   553→    onCancelComparisonRename,
+   554→    addSubgroupFor,
+   555→    newSubgroupName,
+   556→    onNewSubgroupNameChange,
+   557→    onStartAddSubgroup,
+   558→    onCommitAddSubgroup,
+   559→    onCancelAddSubgroup,
+   560→    onDeleteSubgroup,
+   561→    renamingSubgroupId,
+   562→    renameSubgroupValue,
+   563→    onRenameSubgroupValueChange,
+   564→    onStartRenameSubgroup,
+   565→    onCommitRenameSubgroup,
+   566→    onCancelRenameSubgroup,
+   567→  } = props;
+   568→
+   569→  const isRenaming = renamingComparisonId === c.id;
+   570→
+   571→  return (
+   572→    <div className="rounded-md">
+   573→      {/* Comparison header */}
+   574→      <div className="flex items-center gap-1 group">
+   575→        <button
+   576→          onClick={onToggleExpand}
+   577→          className="p-1 rounded hover:bg-muted text-muted-foreground shrink-0"
+   578→          aria-label={expanded ? "Collapse" : "Expand"}
+   579→        >
+   580→          {expanded ? (
+   581→            <ChevronDown className="size-3.5" />
+   582→          ) : (
+   583→            <ChevronRight className="size-3.5" />
+   584→          )}
+   585→        </button>
+   586→
+   587→        {isRenaming ? (
+   588→          <Input
+   589→            value={renameComparisonValue}
+   590→            onChange={(e) => onRenameComparisonValueChange(e.target.value)}
+   591→            onBlur={onCommitComparisonRename}
+   592→            onKeyDown={(e) => {
+   593→              if (e.key === "Enter") onCommitComparisonRename();
+   594→              if (e.key === "Escape") onCancelComparisonRename();
+   595→            }}
+   596→            className="h-7 text-sm flex-1"
+   597→            autoFocus
+   598→          />
+   599→        ) : (
+   600→          <button
+   601→            onClick={onToggleExpand}
+   602→            className="flex-1 text-left text-sm font-medium truncate hover:text-emerald-700"
+   603→            title={c.name}
+   604→          >
+   605→            {c.name}
+   606→            <span className="ml-1 text-[10px] text-muted-foreground">
+   607→              ({c.outcomes.length})
+   608→            </span>
+   609→          </button>
+   610→        )}
+   611→
+   612→        {!isRenaming && (
+   613→          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+   614→            <IconBtn
+   615→              icon={Plus}
+   616→              title="Add outcome"
+   617→              onClick={onAddOutcome}
+   618→              className="text-emerald-700"
+   619→            />
+   620→            <IconBtn
+   621→              icon={Pencil}
+   622→              title="Rename"
+   623→              onClick={onRenameComparison}
+   624→            />
+   625→            <IconBtn
+   626→              icon={Trash2}
+   627→              title="Delete comparison"
+   628→              onClick={onDeleteComparison}
+   629→              className="text-rose-600 hover:text-rose-700"
+   630→            />
+   631→          </div>
+   632→        )}
+   633→      </div>
+   634→
+   635→      {/* Outcomes */}
+   636→      {expanded && (
+   637→        <div className="ml-3 mt-0.5 border-l border-border pl-2 space-y-0.5">
+   638→          {c.outcomes.length === 0 && (
+   639→            <p className="text-[10px] text-muted-foreground italic pl-2 py-1">
+   640→              No outcomes.
+   641→            </p>
+   642→          )}
+   643→          {c.outcomes.map((o) => {
+   644→            const isSelected = o.id === selectedOutcomeId;
+   645→            return (
+   646→              <OutcomeNode
+   647→                key={o.id}
+   648→                outcome={o}
+   649→                isSelected={isSelected}
+   650→                onSelect={() => onSelectOutcome(o.id, c.id)}
+   651→                onEdit={() => onEditOutcome(o)}
+   652→                onDelete={() => onDeleteOutcome(o)}
+   653→                addSubgroupOpen={addSubgroupFor === o.id}
+   654→                newSubgroupName={newSubgroupName}
+   655→                onNewSubgroupNameChange={onNewSubgroupNameChange}
+   656→                onStartAddSubgroup={() => onStartAddSubgroup(o.id)}
+   657→                onCommitAddSubgroup={onCommitAddSubgroup}
+   658→                onCancelAddSubgroup={onCancelAddSubgroup}
+   659→                onDeleteSubgroup={onDeleteSubgroup}
+   660→                renamingSubgroupId={renamingSubgroupId}
+   661→                renameSubgroupValue={renameSubgroupValue}
+   662→                onRenameSubgroupValueChange={onRenameSubgroupValueChange}
+   663→                onStartRenameSubgroup={onStartRenameSubgroup}
+   664→                onCommitRenameSubgroup={onCommitRenameSubgroup}
+   665→                onCancelRenameSubgroup={onCancelRenameSubgroup}
+   666→              />
+   667→            );
+   668→          })}
+   669→        </div>
+   670→      )}
+   671→    </div>
+   672→  );
+   673→}
+   674→
+   675→// --- Outcome node ----------------------------------------------------------
+   676→
+   677→interface OutcomeNodeProps {
+   678→  outcome: Outcome;
+   679→  isSelected: boolean;
+   680→  onSelect: () => void;
+   681→  onEdit: () => void;
+   682→  onDelete: () => void;
+   683→  addSubgroupOpen: boolean;
+   684→  newSubgroupName: string;
+   685→  onNewSubgroupNameChange: (v: string) => void;
+   686→  onStartAddSubgroup: () => void;
+   687→  onCommitAddSubgroup: () => void;
+   688→  onCancelAddSubgroup: () => void;
+   689→  onDeleteSubgroup: (sg: { id: string; name: string }) => void;
+   690→  renamingSubgroupId: string | null;
+   691→  renameSubgroupValue: string;
+   692→  onRenameSubgroupValueChange: (v: string) => void;
+   693→  onStartRenameSubgroup: (sg: { id: string; name: string }) => void;
+   694→  onCommitRenameSubgroup: () => void;
+   695→  onCancelRenameSubgroup: () => void;
+   696→}
+   697→
+   698→function OutcomeNode(props: OutcomeNodeProps) {
+   699→  const {
+   700→    outcome: o,
+   701→    isSelected,
+   702→    onSelect,
+   703→    onEdit,
+   704→    onDelete,
+   705→    addSubgroupOpen,
+   706→    newSubgroupName,
+   707→    onNewSubgroupNameChange,
+   708→    onStartAddSubgroup,
+   709→    onCommitAddSubgroup,
+   710→    onCancelAddSubgroup,
+   711→    onDeleteSubgroup,
+   712→    renamingSubgroupId,
+   713→    renameSubgroupValue,
+   714→    onRenameSubgroupValueChange,
+   715→    onStartRenameSubgroup,
+   716→    onCommitRenameSubgroup,
+   717→    onCancelRenameSubgroup,
+   718→  } = props;
+   719→
+   720→  return (
+   721→    <div className="group">
+   722→      <div
+   723→        className={cn(
+   724→          "flex items-center gap-1 rounded px-1.5 py-1 cursor-pointer",
+   725→          isSelected
+   726→            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100"
+   727→            : "hover:bg-muted",
+   728→        )}
+   729→        onClick={onSelect}
+   730→      >
+   731→        <Badge
+   732→          variant="outline"
+   733→          className="text-[9px] h-4 px-1 py-0 shrink-0 font-mono"
+   734→        >
+   735→          {SHORT_TYPE_LABELS[o.dataType]}
+   736→        </Badge>
+   737→        <span className="flex-1 text-sm truncate">{o.name}</span>
+   738→        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+   739→          <IconBtn
+   740→            icon={Plus}
+   741→            title="Add subgroup"
+   742→            onClick={(e) => {
+   743→              e.stopPropagation();
+   744→              onStartAddSubgroup();
+   745→            }}
+   746→            className="text-emerald-700"
+   747→          />
+   748→          <IconBtn
+   749→            icon={Pencil}
+   750→            title="Edit outcome"
+   751→            onClick={(e) => {
+   752→              e.stopPropagation();
+   753→              onEdit();
+   754→            }}
+   755→          />
+   756→          <IconBtn
+   757→            icon={Trash2}
+   758→            title="Delete outcome"
+   759→            onClick={(e) => {
+   760→              e.stopPropagation();
+   761→              onDelete();
+   762→            }}
+   763→            className="text-rose-600 hover:text-rose-700"
+   764→          />
+   765→        </div>
+   766→      </div>
+   767→
+   768→      {/* Subgroups */}
+   769→      {o.subgroups.length > 0 && (
+   770→        <div className="ml-3 mt-0.5 border-l border-border pl-2 space-y-0.5">
+   771→          {o.subgroups.map((sg) => {
+   772→            const isRenaming = renamingSubgroupId === sg.id;
+   773→            return (
+   774→              <div
+   775→                key={sg.id}
+   776→                className="flex items-center gap-1 group/sg px-1.5 py-0.5 rounded hover:bg-muted"
+   777→              >
+   778→                {isRenaming ? (
+   779→                  <Input
+   780→                    value={renameSubgroupValue}
+   781→                    onChange={(e) => onRenameSubgroupValueChange(e.target.value)}
+   782→                    onBlur={onCommitRenameSubgroup}
+   783→                    onKeyDown={(e) => {
+   784→                      if (e.key === "Enter") onCommitRenameSubgroup();
+   785→                      if (e.key === "Escape") onCancelRenameSubgroup();
+   786→                    }}
+   787→                    className="h-6 text-xs flex-1"
+   788→                    autoFocus
+   789→                  />
+   790→                ) : (
+   791→                  <span className="flex-1 text-xs text-muted-foreground truncate">
+   792→                    {sg.name}
+   793→                  </span>
+   794→                )}
+   795→                {!isRenaming && (
+   796→                  <div className="flex items-center opacity-0 group-hover/sg:opacity-100 transition-opacity">
+   797→                    <IconBtn
+   798→                      icon={Pencil}
+   799→                      title="Rename subgroup"
+   800→                      onClick={() => onStartRenameSubgroup(sg)}
+   801→                    />
+   802→                    <IconBtn
+   803→                      icon={Trash2}
+   804→                      title="Delete subgroup"
+   805→                      onClick={() => onDeleteSubgroup(sg)}
+   806→                      className="text-rose-600 hover:text-rose-700"
+   807→                    />
+   808→                  </div>
+   809→                )}
+   810→              </div>
+   811→            );
+   812→          })}
+   813→        </div>
+   814→      )}
+   815→
+   816→      {/* Inline add-subgroup form */}
+   817→      {addSubgroupOpen && (
+   818→        <div className="ml-3 mt-0.5 border-l border-border pl-2 flex gap-1 py-0.5">
+   819→          <Input
+   820→            value={newSubgroupName}
+   821→            onChange={(e) => onNewSubgroupNameChange(e.target.value)}
+   822→            placeholder="Subgroup name…"
+   823→            className="h-6 text-xs"
+   824→            autoFocus
+   825→            onKeyDown={(e) => {
+   826→              if (e.key === "Enter") onCommitAddSubgroup();
+   827→              if (e.key === "Escape") onCancelAddSubgroup();
+   828→            }}
+   829→          />
+   830→          <Button
+   831→            size="sm"
+   832→            variant="ghost"
+   833→            className="h-6 px-2 text-xs"
+   834→            onClick={onCommitAddSubgroup}
+   835→          >
+   836→            Add
+   837→          </Button>
+   838→          <Button
+   839→            size="sm"
+   840→            variant="ghost"
+   841→            className="h-6 px-2 text-xs"
+   842→            onClick={onCancelAddSubgroup}
+   843→          >
+   844→            Cancel
+   845→          </Button>
+   846→        </div>
+   847→      )}
+   848→    </div>
+   849→  );
+   850→}
+   851→
+   852→// --- Outcome detail (right panel) -----------------------------------------
+   853→
+   854→interface OutcomeDetailProps {
+   855→  outcome: Outcome;
+   856→  onEdit: () => void;
+   857→  onAddSubgroup: () => void;
+   858→  addSubgroupOpen: boolean;
+   859→  newSubgroupName: string;
+   860→  onNewSubgroupNameChange: (v: string) => void;
+   861→  onCommitAddSubgroup: () => void;
+   862→  onCancelAddSubgroup: () => void;
+   863→  renamingSubgroupId: string | null;
+   864→  renameSubgroupValue: string;
+   865→  onRenameSubgroupValueChange: (v: string) => void;
+   866→  onStartRenameSubgroup: (sg: { id: string; name: string }) => void;
+   867→  onCommitRenameSubgroup: () => void;
+   868→  onCancelRenameSubgroup: () => void;
+   869→  onDeleteSubgroup: (sg: { id: string; name: string }) => void;
+   870→}
+   871→
+   872→function OutcomeDetail(props: OutcomeDetailProps) {
+   873→  const {
+   874→    outcome,
+   875→    onEdit,
+   876→    onAddSubgroup,
+   877→    addSubgroupOpen,
+   878→    newSubgroupName,
+   879→    onNewSubgroupNameChange,
+   880→    onCommitAddSubgroup,
+   881→    onCancelAddSubgroup,
+   882→    renamingSubgroupId,
+   883→    renameSubgroupValue,
+   884→    onRenameSubgroupValueChange,
+   885→    onStartRenameSubgroup,
+   886→    onCommitRenameSubgroup,
+   887→    onCancelRenameSubgroup,
+   888→    onDeleteSubgroup,
+   889→  } = props;
+   890→
+   891→  const isDta = outcome.dataType === "DTA_2x2";
+   892→
+   893→  return (
+   894→    <Card className="p-4 lg:p-5">
+   895→      {/* Header */}
+   896→      <div className="flex items-start justify-between gap-3 mb-4">
+   897→        <div className="min-w-0">
+   898→          <h3 className="text-lg font-semibold truncate">{outcome.name}</h3>
+   899→          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+   900→            <Badge variant="secondary" className="text-xs">
+   901→              {DATA_TYPE_LABELS[outcome.dataType]}
+   902→            </Badge>
+   903→            <Badge variant="outline" className="text-xs">
+   904→              {EFFECT_LABELS[outcome.effectMeasure]}
+   905→            </Badge>
+   906→            <Badge variant="outline" className="text-xs">
+   907→              {METHOD_LABELS[outcome.method]}
+   908→            </Badge>
+   909→            <Badge
+   910→              variant="outline"
+   911→              className={cn(
+   912→                "text-xs capitalize",
+   913→                outcome.model === "random"
+   914→                  ? "border-amber-300 text-amber-700"
+   915→                  : "border-emerald-300 text-emerald-700",
+   916→              )}
+   917→            >
+   918→              {outcome.model === "random" ? "Random" : "Fixed"}
+   919→            </Badge>
+   920→            {outcome.unit && (
+   921→              <Badge variant="outline" className="text-xs">
+   922→                Unit: {outcome.unit}
+   923→              </Badge>
+   924→            )}
+   925→            {outcome.timeFrame && (
+   926→              <Badge variant="outline" className="text-xs">
+   927→                {outcome.timeFrame}
+   928→              </Badge>
+   929→            )}
+   930→          </div>
+   931→        </div>
+   932→        <Button size="sm" variant="outline" onClick={onEdit}>
+   933→          <Pencil className="size-4" />
+   934→          Edit
+   935→        </Button>
+   936→      </div>
+   937→
+   938→      <Tabs defaultValue="data" className="w-full">
+   939→        <TabsList>
+   940→          <TabsTrigger value="data">Data Entry</TabsTrigger>
+   941→          <TabsTrigger value="forest">Forest Plot</TabsTrigger>
+   942→          <TabsTrigger value="funnel">
+   943→            {isDta ? "SROC Plot" : "Funnel Plot"}
+   944→          </TabsTrigger>
+   945→          <TabsTrigger value="subgroups">
+   946→            Subgroups
+   947→            <Badge
+   948→              variant="secondary"
+   949→              className="ml-1.5 h-4 px-1 text-[10px]"
+   950→            >
+   951→              {outcome.subgroups.length}
+   952→            </Badge>
+   953→          </TabsTrigger>
+   954→        </TabsList>
+   955→
+   956→        <TabsContent value="data" className="mt-3">
+   957→          <DataGrid outcome={outcome} />
+   958→        </TabsContent>
+   959→
+   960→        <TabsContent value="forest" className="mt-3">
+   961→          <ForestPlot outcome={outcome} />
+   962→        </TabsContent>
+   963→
+   964→        <TabsContent value="funnel" className="mt-3">
+   965→          {isDta ? <SrocPlot outcome={outcome} /> : <FunnelPlot outcome={outcome} />}
+   966→        </TabsContent>
+   967→
+   968→        <TabsContent value="subgroups" className="mt-3">
+   969→          <SubgroupsTab
+   970→            outcome={outcome}
+   971→            addSubgroupOpen={addSubgroupOpen}
+   972→            newSubgroupName={newSubgroupName}
+   973→            onNewSubgroupNameChange={onNewSubgroupNameChange}
+   974→            onAddSubgroup={onAddSubgroup}
+   975→            onCommitAddSubgroup={onCommitAddSubgroup}
+   976→            onCancelAddSubgroup={onCancelAddSubgroup}
+   977→            renamingSubgroupId={renamingSubgroupId}
+   978→            renameSubgroupValue={renameSubgroupValue}
+   979→            onRenameSubgroupValueChange={onRenameSubgroupValueChange}
+   980→            onStartRenameSubgroup={onStartRenameSubgroup}
+   981→            onCommitRenameSubgroup={onCommitRenameSubgroup}
+   982→            onCancelRenameSubgroup={onCancelRenameSubgroup}
+   983→            onDeleteSubgroup={onDeleteSubgroup}
+   984→          />
+   985→        </TabsContent>
+   986→      </Tabs>
+   987→    </Card>
+   988→  );
+   989→}
+   990→
+   991→// --- Subgroups tab ---------------------------------------------------------
+   992→
+   993→interface SubgroupsTabProps {
+   994→  outcome: Outcome;
+   995→  addSubgroupOpen: boolean;
+   996→  newSubgroupName: string;
+   997→  onNewSubgroupNameChange: (v: string) => void;
+   998→  onAddSubgroup: () => void;
+   999→  onCommitAddSubgroup: () => void;
+  1000→  onCancelAddSubgroup: () => void;
+  1001→  renamingSubgroupId: string | null;
+  1002→  renameSubgroupValue: string;
+  1003→  onRenameSubgroupValueChange: (v: string) => void;
+  1004→  onStartRenameSubgroup: (sg: { id: string; name: string }) => void;
+  1005→  onCommitRenameSubgroup: () => void;
+  1006→  onCancelRenameSubgroup: () => void;
+  1007→  onDeleteSubgroup: (sg: { id: string; name: string }) => void;
+  1008→}
+  1009→
+  1010→function SubgroupsTab(props: SubgroupsTabProps) {
+  1011→  const {
+  1012→    outcome,
+  1013→    addSubgroupOpen,
+  1014→    newSubgroupName,
+  1015→    onNewSubgroupNameChange,
+  1016→    onAddSubgroup,
+  1017→    onCommitAddSubgroup,
+  1018→    onCancelAddSubgroup,
+  1019→    renamingSubgroupId,
+  1020→    renameSubgroupValue,
+  1021→    onRenameSubgroupValueChange,
+  1022→    onStartRenameSubgroup,
+  1023→    onCommitRenameSubgroup,
+  1024→    onCancelRenameSubgroup,
+  1025→    onDeleteSubgroup,
+  1026→  } = props;
+  1027→
+  1028→  return (
+  1029→    <div className="space-y-3">
+  1030→      <div className="flex items-center justify-between">
+  1031→        <div>
+  1032→          <h4 className="text-sm font-semibold">Subgroups</h4>
+  1033→          <p className="text-xs text-muted-foreground">
+  1034→            Subgroups let you split the analysis (e.g. by age band, study design).
+  1035→          </p>
+  1036→        </div>
+  1037→        <Button size="sm" variant="outline" onClick={onAddSubgroup}>
+  1038→          <Plus className="size-4" />
+  1039→          Add subgroup
+  1040→        </Button>
+  1041→      </div>
+  1042→
+  1043→      {addSubgroupOpen && (
+  1044→        <Card className="p-3 flex gap-2 items-center">
+  1045→          <Input
+  1046→            value={newSubgroupName}
+  1047→            onChange={(e) => onNewSubgroupNameChange(e.target.value)}
+  1048→            placeholder="Subgroup name…"
+  1049→            className="h-8"
+  1050→            autoFocus
+  1051→            onKeyDown={(e) => {
+  1052→              if (e.key === "Enter") onCommitAddSubgroup();
+  1053→              if (e.key === "Escape") onCancelAddSubgroup();
+  1054→            }}
+  1055→          />
+  1056→          <Button size="sm" onClick={onCommitAddSubgroup} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+  1057→            Add
+  1058→          </Button>
+  1059→          <Button size="sm" variant="ghost" onClick={onCancelAddSubgroup}>
+  1060→            Cancel
+  1061→          </Button>
+  1062→        </Card>
+  1063→      )}
+  1064→
+  1065→      {outcome.subgroups.length === 0 ? (
+  1066→        <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">
+  1067→          No subgroups defined.
+  1068→        </div>
+  1069→      ) : (
+  1070→        <div className="space-y-1">
+  1071→          {outcome.subgroups.map((sg) => {
+  1072→            const isRenaming = renamingSubgroupId === sg.id;
+  1073→            return (
+  1074→              <Card key={sg.id} className="p-2.5 flex items-center gap-2">
+  1075→                {isRenaming ? (
+  1076→                  <Input
+  1077→                    value={renameSubgroupValue}
+  1078→                    onChange={(e) => onRenameSubgroupValueChange(e.target.value)}
+  1079→                    onBlur={onCommitRenameSubgroup}
+  1080→                    onKeyDown={(e) => {
+  1081→                      if (e.key === "Enter") onCommitRenameSubgroup();
+  1082→                      if (e.key === "Escape") onCancelRenameSubgroup();
+  1083→                    }}
+  1084→                    className="h-7"
+  1085→                    autoFocus
+  1086→                  />
+  1087→                ) : (
+  1088→                  <>
+  1089→                    <span className="flex-1 text-sm font-medium">{sg.name}</span>
+  1090→                    <Badge variant="secondary" className="text-xs">
+  1091→                      {sg.dataPoints.length} data points
+  1092→                    </Badge>
+  1093→                    <Button
+  1094→                      size="icon"
+  1095→                      variant="ghost"
+  1096→                      className="h-7 w-7"
+  1097→                      onClick={() => onStartRenameSubgroup(sg)}
+  1098→                      title="Rename"
+  1099→                    >
+  1100→                      <Pencil className="size-3.5" />
+  1101→                    </Button>
+  1102→                    <Button
+  1103→                      size="icon"
+  1104→                      variant="ghost"
+  1105→                      className="h-7 w-7 text-rose-600 hover:text-rose-700"
+  1106→                      onClick={() => onDeleteSubgroup(sg)}
+  1107→                      title="Delete"
+  1108→                    >
+  1109→                      <Trash2 className="size-3.5" />
+  1110→                    </Button>
+  1111→                  </>
+  1112→                )}
+  1113→              </Card>
+  1114→            );
+  1115→          })}
+  1116→        </div>
+  1117→      )}
+  1118→    </div>
+  1119→  );
+  1120→}
+  1121→
+  1122→// --- Add / Edit outcome dialog --------------------------------------------
+  1123→
+  1124→interface OutcomeFormDialogProps {
+  1125→  mode: "add" | "edit";
+  1126→  outcome?: Outcome;
+  1127→  /** Required when mode === "add"; ignored when editing an existing outcome. */
+  1128→  comparisonId?: string;
+  1129→  onClose: () => void;
+  1130→}
+  1131→
+  1132→function OutcomeFormDialog({
+  1133→  mode,
+  1134→  outcome,
+  1135→  comparisonId,
+  1136→  onClose,
+  1137→}: OutcomeFormDialogProps) {
+  1138→  const addOutcome = useReviewStore((s) => s.addOutcome);
+  1139→  const updateOutcome = useReviewStore((s) => s.updateOutcome);
+  1140→
+  1141→  const [name, setName] = useState(outcome?.name ?? "");
+  1142→  const [dataType, setDataType] = useState<DataType>(
+  1143→    outcome?.dataType ?? "DICHOTOMOUS",
+  1144→  );
+  1145→  const [effectMeasure, setEffectMeasure] = useState<EffectMeasure>(
+  1146→    outcome?.effectMeasure ?? DEFAULTS.DICHOTOMOUS.effectMeasure,
+  1147→  );
+  1148→  const [method, setMethod] = useState<MethodType>(
+  1149→    outcome?.method ?? DEFAULTS.DICHOTOMOUS.method,
+  1150→  );
+  1151→  const [model, setModel] = useState<ModelType>(
+  1152→    outcome?.model ?? DEFAULTS.DICHOTOMOUS.model,
+  1153→  );
+  1154→  const [unit, setUnit] = useState<string>(outcome?.unit ?? "");
+  1155→  const [timeFrame, setTimeFrame] = useState<string>(
+  1156→    outcome?.timeFrame ?? "",
+  1157→  );
+  1158→
+  1159→  // When dataType changes, snap defaults to the spec's per-type defaults and
+  1160→  // ensure the chosen effect/method remain valid for the new dataType.
+  1161→  function handleDataTypeChange(next: DataType) {
+  1162→    setDataType(next);
+  1163→    const d = DEFAULTS[next];
+  1164→    setEffectMeasure(d.effectMeasure);
+  1165→    setMethod(d.method);
+  1166→    setModel(d.model);
+  1167→  }
+  1168→
+  1169→  function handleSave() {
+  1170→    if (!name.trim()) {
+  1171→      toast.error("Outcome name is required");
+  1172→      return;
+  1173→    }
+  1174→    if (mode === "add") {
+  1175→      if (!comparisonId) {
+  1176→        toast.error("No comparison selected");
+  1177→        return;
+  1178→      }
+  1179→      addOutcome(comparisonId, {
+  1180→        name: name.trim(),
+  1181→        dataType,
+  1182→        effectMeasure,
+  1183→        method,
+  1184→        model,
+  1185→        unit: unit.trim() || null,
+  1186→        timeFrame: timeFrame.trim() || null,
+  1187→      });
+  1188→      toast.success("Outcome added");
+  1189→    } else if (outcome) {
+  1190→      updateOutcome(outcome.id, {
+  1191→        name: name.trim(),
+  1192→        dataType,
+  1193→        effectMeasure,
+  1194→        method,
+  1195→        model,
+  1196→        unit: unit.trim() || null,
+  1197→        timeFrame: timeFrame.trim() || null,
+  1198→      });
+  1199→      toast.success("Outcome updated");
+  1200→    }
+  1201→    onClose();
+  1202→  }
+  1203→
+  1204→  return (
+  1205→    <Dialog open onOpenChange={(o) => !o && onClose()}>
+  1206→      <DialogContent className="sm:max-w-lg">
+  1207→        <DialogHeader>
+  1208→          <DialogTitle>
+  1209→            {mode === "add" ? "Add outcome" : "Edit outcome"}
+  1210→          </DialogTitle>
+  1211→          <DialogDescription>
+  1212→            Configure the data type, effect measure, and pooling method. Options
+  1213→            for method/effect adapt to the selected data type.
+  1214→          </DialogDescription>
+  1215→        </DialogHeader>
+  1216→
+  1217→        <div className="space-y-3">
+  1218→          <div>
+  1219→            <Label htmlFor="out-name" className="text-xs">
+  1220→              Outcome name
+  1221→            </Label>
+  1222→            <Input
+  1223→              id="out-name"
+  1224→              value={name}
+  1225→              onChange={(e) => setName(e.target.value)}
+  1226→              placeholder="e.g. All-cause mortality"
+  1227→              autoFocus
+  1228→            />
+  1229→          </div>
+  1230→
+  1231→          <div className="grid grid-cols-2 gap-3">
+  1232→            <div>
+  1233→              <Label className="text-xs">Data type</Label>
+  1234→              <Select
+  1235→                value={dataType}
+  1236→                onValueChange={(v) => handleDataTypeChange(v as DataType)}
+  1237→              >
+  1238→                <SelectTrigger className="w-full">
+  1239→                  <SelectValue />
+  1240→                </SelectTrigger>
+  1241→                <SelectContent>
+  1242→                  {ALL_DATA_TYPES.map((t) => (
+  1243→                    <SelectItem key={t} value={t}>
+  1244→                      {DATA_TYPE_LABELS[t]}
+  1245→                    </SelectItem>
+  1246→                  ))}
+  1247→                </SelectContent>
+  1248→              </Select>
+  1249→            </div>
+  1250→
+  1251→            <div>
+  1252→              <Label className="text-xs">Model</Label>
+  1253→              <Select
+  1254→                value={model}
+  1255→                onValueChange={(v) => setModel(v as ModelType)}
+  1256→              >
+  1257→                <SelectTrigger className="w-full">
+  1258→                  <SelectValue />
+  1259→                </SelectTrigger>
+  1260→                <SelectContent>
+  1261→                  <SelectItem value="fixed">Fixed-effect</SelectItem>
+  1262→                  <SelectItem value="random">Random-effects</SelectItem>
+  1263→                </SelectContent>
+  1264→              </Select>
+  1265→            </div>
+  1266→
+  1267→            <div>
+  1268→              <Label className="text-xs">Effect measure</Label>
+  1269→              <Select
+  1270→                value={effectMeasure}
+  1271→                onValueChange={(v) => setEffectMeasure(v as EffectMeasure)}
+  1272→              >
+  1273→                <SelectTrigger className="w-full">
+  1274→                  <SelectValue />
+  1275→                </SelectTrigger>
+  1276→                <SelectContent>
+  1277→                  {EFFECT_OPTIONS[dataType].map((m) => (
+  1278→                    <SelectItem key={m} value={m}>
+  1279→                      {EFFECT_LABELS[m]}
+  1280→                    </SelectItem>
+  1281→                  ))}
+  1282→                </SelectContent>
+  1283→              </Select>
+  1284→            </div>
+  1285→
+  1286→            <div>
+  1287→              <Label className="text-xs">Method</Label>
+  1288→              <Select
+  1289→                value={method}
+  1290→                onValueChange={(v) => setMethod(v as MethodType)}
+  1291→              >
+  1292→                <SelectTrigger className="w-full">
+  1293→                  <SelectValue />
+  1294→                </SelectTrigger>
+  1295→                <SelectContent>
+  1296→                  {METHOD_OPTIONS[dataType].map((m) => (
+  1297→                    <SelectItem key={m} value={m}>
+  1298→                      {METHOD_LABELS[m]}
+  1299→                    </SelectItem>
+  1300→                  ))}
+  1301→                </SelectContent>
+  1302→              </Select>
+  1303→            </div>
+  1304→          </div>
+  1305→
+  1306→          <div className="grid grid-cols-2 gap-3">
+  1307→            <div>
+  1308→              <Label htmlFor="out-unit" className="text-xs">
+  1309→                Unit (optional)
+  1310→              </Label>
+  1311→              <Input
+  1312→                id="out-unit"
+  1313→                value={unit}
+  1314→                onChange={(e) => setUnit(e.target.value)}
+  1315→                placeholder="e.g. mmHg"
+  1316→              />
+  1317→            </div>
+  1318→            <div>
+  1319→              <Label htmlFor="out-tf" className="text-xs">
+  1320→                Time frame (optional)
+  1321→              </Label>
+  1322→              <Input
+  1323→                id="out-tf"
+  1324→                value={timeFrame}
+  1325→                onChange={(e) => setTimeFrame(e.target.value)}
+  1326→                placeholder="e.g. 6 months"
+  1327→              />
+  1328→            </div>
+  1329→          </div>
+  1330→        </div>
+  1331→
+  1332→        <DialogFooter>
+  1333→          <Button variant="ghost" onClick={onClose}>
+  1334→            Cancel
+  1335→          </Button>
+  1336→          <Button
+  1337→            onClick={handleSave}
+  1338→            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+  1339→          >
+  1340→            {mode === "add" ? "Add outcome" : "Save changes"}
+  1341→          </Button>
+  1342→        </DialogFooter>
+  1343→      </DialogContent>
+  1344→    </Dialog>
+  1345→  );
+  1346→}
+  1347→
+  1348→// --- Empty state (no outcome selected) ------------------------------------
+  1349→
+  1350→function EmptyDetail({ comparisonsCount }: { comparisonsCount: number }) {
+  1351→  return (
+  1352→    <Card className="p-8 flex flex-col items-center justify-center text-center min-h-[320px]">
+  1353→      <div className="size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mb-3">
+  1354→        <GitCompare className="size-6 text-emerald-600" />
+  1355→      </div>
+  1356→      <h3 className="text-base font-semibold">No outcome selected</h3>
+  1357→      <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+  1358→        {comparisonsCount === 0
+  1359→          ? "Start by adding a comparison on the left, then add an outcome to enter your study data."
+  1360→          : "Pick an outcome from the tree on the left to see its data entry grid, forest plot, and subgroups."}
+  1361→      </p>
+  1362→    </Card>
+  1363→  );
+  1364→}
+  1365→
+  1366→// --- Small icon button helper ---------------------------------------------
+  1367→
+  1368→function IconBtn({
+  1369→  icon: Icon,
+  1370→  title,
+  1371→  onClick,
+  1372→  className,
+  1373→}: {
+  1374→  icon: React.ComponentType<{ className?: string }>;
+  1375→  title: string;
+  1376→  onClick: (e: React.MouseEvent) => void;
+  1377→  className?: string;
+  1378→}) {
+  1379→  return (
+  1380→    <button
+  1381→      type="button"
+  1382→      title={title}
+  1383→      onClick={onClick}
+  1384→      className={cn(
+  1385→        "p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground shrink-0",
+  1386→        className,
+  1387→      )}
+  1388→    >
+  1389→      <Icon className="size-3.5" />
+  1390→    </button>
+  1391→  );
+  1392→}
+  1393→
