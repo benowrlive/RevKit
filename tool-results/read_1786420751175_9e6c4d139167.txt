@@ -1,0 +1,563 @@
+     1→---
+     2→version: alpha
+     3→name: Apple
+     4→description: "A photography-first interface that turns marketing into a museum gallery. Edge-to-edge product tiles alternate light and dark canvases, framed by SF Pro Display headlines with negative letter-spacing and a single Action Blue (#0066cc) interactive color. UI chrome recedes so the product can speak — no decorative gradients, no shadows on chrome, only the one signature drop-shadow under product imagery resting on a surface."
+     5→
+     6→colors:
+     7→  primary: "#0066cc"
+     8→  primary-focus: "#0071e3"
+     9→  primary-on-dark: "#2997ff"
+    10→  ink: "#1d1d1f"
+    11→  body: "#1d1d1f"
+    12→  body-on-dark: "#ffffff"
+    13→  body-muted: "#cccccc"
+    14→  ink-muted-80: "#333333"
+    15→  ink-muted-48: "#7a7a7a"
+    16→  divider-soft: "#f0f0f0"
+    17→  hairline: "#e0e0e0"
+    18→  canvas: "#ffffff"
+    19→  canvas-parchment: "#f5f5f7"
+    20→  surface-pearl: "#fafafc"
+    21→  surface-tile-1: "#272729"
+    22→  surface-tile-2: "#2a2a2c"
+    23→  surface-tile-3: "#252527"
+    24→  surface-black: "#000000"
+    25→  surface-chip-translucent: "#d2d2d7"
+    26→  on-primary: "#ffffff"
+    27→  on-dark: "#ffffff"
+    28→
+    29→typography:
+    30→  hero-display:
+    31→    fontFamily: "SF Pro Display, system-ui, -apple-system, sans-serif"
+    32→    fontSize: 56px
+    33→    fontWeight: 600
+    34→    lineHeight: 1.07
+    35→    letterSpacing: -0.28px
+    36→  display-lg:
+    37→    fontFamily: "SF Pro Display, system-ui, -apple-system, sans-serif"
+    38→    fontSize: 40px
+    39→    fontWeight: 600
+    40→    lineHeight: 1.1
+    41→    letterSpacing: 0
+    42→  display-md:
+    43→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    44→    fontSize: 34px
+    45→    fontWeight: 600
+    46→    lineHeight: 1.47
+    47→    letterSpacing: -0.374px
+    48→  lead:
+    49→    fontFamily: "SF Pro Display, system-ui, -apple-system, sans-serif"
+    50→    fontSize: 28px
+    51→    fontWeight: 400
+    52→    lineHeight: 1.14
+    53→    letterSpacing: 0.196px
+    54→  lead-airy:
+    55→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    56→    fontSize: 24px
+    57→    fontWeight: 300
+    58→    lineHeight: 1.5
+    59→    letterSpacing: 0
+    60→  tagline:
+    61→    fontFamily: "SF Pro Display, system-ui, -apple-system, sans-serif"
+    62→    fontSize: 21px
+    63→    fontWeight: 600
+    64→    lineHeight: 1.19
+    65→    letterSpacing: 0.231px
+    66→  body-strong:
+    67→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    68→    fontSize: 17px
+    69→    fontWeight: 600
+    70→    lineHeight: 1.24
+    71→    letterSpacing: -0.374px
+    72→  body:
+    73→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    74→    fontSize: 17px
+    75→    fontWeight: 400
+    76→    lineHeight: 1.47
+    77→    letterSpacing: -0.374px
+    78→  dense-link:
+    79→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    80→    fontSize: 17px
+    81→    fontWeight: 400
+    82→    lineHeight: 2.41
+    83→    letterSpacing: 0
+    84→  caption:
+    85→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    86→    fontSize: 14px
+    87→    fontWeight: 400
+    88→    lineHeight: 1.43
+    89→    letterSpacing: -0.224px
+    90→  caption-strong:
+    91→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    92→    fontSize: 14px
+    93→    fontWeight: 600
+    94→    lineHeight: 1.29
+    95→    letterSpacing: -0.224px
+    96→  button-large:
+    97→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+    98→    fontSize: 18px
+    99→    fontWeight: 300
+   100→    lineHeight: 1.0
+   101→    letterSpacing: 0
+   102→  button-utility:
+   103→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+   104→    fontSize: 14px
+   105→    fontWeight: 400
+   106→    lineHeight: 1.29
+   107→    letterSpacing: -0.224px
+   108→  fine-print:
+   109→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+   110→    fontSize: 12px
+   111→    fontWeight: 400
+   112→    lineHeight: 1.0
+   113→    letterSpacing: -0.12px
+   114→  micro-legal:
+   115→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+   116→    fontSize: 10px
+   117→    fontWeight: 400
+   118→    lineHeight: 1.3
+   119→    letterSpacing: -0.08px
+   120→  nav-link:
+   121→    fontFamily: "SF Pro Text, system-ui, -apple-system, sans-serif"
+   122→    fontSize: 12px
+   123→    fontWeight: 400
+   124→    lineHeight: 1.0
+   125→    letterSpacing: -0.12px
+   126→
+   127→rounded:
+   128→  none: 0px
+   129→  xs: 5px
+   130→  sm: 8px
+   131→  md: 11px
+   132→  lg: 18px
+   133→  pill: 9999px
+   134→  full: 9999px
+   135→
+   136→spacing:
+   137→  xxs: 4px
+   138→  xs: 8px
+   139→  sm: 12px
+   140→  md: 17px
+   141→  lg: 24px
+   142→  xl: 32px
+   143→  xxl: 48px
+   144→  section: 80px
+   145→
+   146→components:
+   147→  button-primary:
+   148→    backgroundColor: "{colors.primary}"
+   149→    textColor: "{colors.on-primary}"
+   150→    typography: "{typography.body}"
+   151→    rounded: "{rounded.pill}"
+   152→    padding: 11px 22px
+   153→  button-primary-focus:
+   154→    backgroundColor: "{colors.primary}"
+   155→    textColor: "{colors.on-primary}"
+   156→    rounded: "{rounded.pill}"
+   157→  button-primary-active:
+   158→    backgroundColor: "{colors.primary}"
+   159→    textColor: "{colors.on-primary}"
+   160→    rounded: "{rounded.pill}"
+   161→  button-secondary-pill:
+   162→    backgroundColor: "{colors.canvas}"
+   163→    textColor: "{colors.primary}"
+   164→    typography: "{typography.body}"
+   165→    rounded: "{rounded.pill}"
+   166→    padding: 11px 22px
+   167→  button-dark-utility:
+   168→    backgroundColor: "{colors.ink}"
+   169→    textColor: "{colors.on-dark}"
+   170→    typography: "{typography.button-utility}"
+   171→    rounded: "{rounded.sm}"
+   172→    padding: 8px 15px
+   173→  button-pearl-capsule:
+   174→    backgroundColor: "{colors.surface-pearl}"
+   175→    textColor: "{colors.ink-muted-80}"
+   176→    typography: "{typography.caption}"
+   177→    rounded: "{rounded.md}"
+   178→    padding: 8px 14px
+   179→  button-store-hero:
+   180→    backgroundColor: "{colors.primary}"
+   181→    textColor: "{colors.on-primary}"
+   182→    typography: "{typography.button-large}"
+   183→    rounded: "{rounded.pill}"
+   184→    padding: 14px 28px
+   185→  button-icon-circular:
+   186→    backgroundColor: "{colors.surface-chip-translucent}"
+   187→    textColor: "{colors.ink}"
+   188→    rounded: "{rounded.full}"
+   189→    size: 44px
+   190→  text-link:
+   191→    backgroundColor: transparent
+   192→    textColor: "{colors.primary}"
+   193→    typography: "{typography.body}"
+   194→  text-link-on-dark:
+   195→    backgroundColor: transparent
+   196→    textColor: "{colors.primary-on-dark}"
+   197→    typography: "{typography.body}"
+   198→  global-nav:
+   199→    backgroundColor: "{colors.surface-black}"
+   200→    textColor: "{colors.on-dark}"
+   201→    typography: "{typography.nav-link}"
+   202→    height: 44px
+   203→  sub-nav-frosted:
+   204→    backgroundColor: "{colors.canvas-parchment}"
+   205→    textColor: "{colors.ink}"
+   206→    typography: "{typography.tagline}"
+   207→    height: 52px
+   208→  product-tile-light:
+   209→    backgroundColor: "{colors.canvas}"
+   210→    textColor: "{colors.ink}"
+   211→    typography: "{typography.display-lg}"
+   212→    rounded: "{rounded.none}"
+   213→    padding: 80px
+   214→  product-tile-parchment:
+   215→    backgroundColor: "{colors.canvas-parchment}"
+   216→    textColor: "{colors.ink}"
+   217→    typography: "{typography.display-lg}"
+   218→    rounded: "{rounded.none}"
+   219→    padding: 80px
+   220→  product-tile-dark:
+   221→    backgroundColor: "{colors.surface-tile-1}"
+   222→    textColor: "{colors.on-dark}"
+   223→    typography: "{typography.display-lg}"
+   224→    rounded: "{rounded.none}"
+   225→    padding: 80px
+   226→  product-tile-dark-2:
+   227→    backgroundColor: "{colors.surface-tile-2}"
+   228→    textColor: "{colors.on-dark}"
+   229→    rounded: "{rounded.none}"
+   230→  product-tile-dark-3:
+   231→    backgroundColor: "{colors.surface-tile-3}"
+   232→    textColor: "{colors.on-dark}"
+   233→    rounded: "{rounded.none}"
+   234→  store-utility-card:
+   235→    backgroundColor: "{colors.canvas}"
+   236→    textColor: "{colors.ink}"
+   237→    typography: "{typography.body-strong}"
+   238→    rounded: "{rounded.lg}"
+   239→    padding: 24px
+   240→  configurator-option-chip:
+   241→    backgroundColor: "{colors.canvas}"
+   242→    textColor: "{colors.ink}"
+   243→    typography: "{typography.caption}"
+   244→    rounded: "{rounded.pill}"
+   245→    padding: 12px 16px
+   246→  configurator-option-chip-selected:
+   247→    backgroundColor: "{colors.canvas}"
+   248→    textColor: "{colors.ink}"
+   249→    rounded: "{rounded.pill}"
+   250→  search-input:
+   251→    backgroundColor: "{colors.canvas}"
+   252→    textColor: "{colors.ink}"
+   253→    typography: "{typography.body}"
+   254→    rounded: "{rounded.pill}"
+   255→    padding: 12px 20px
+   256→    height: 44px
+   257→  floating-sticky-bar:
+   258→    backgroundColor: "{colors.canvas-parchment}"
+   259→    textColor: "{colors.ink}"
+   260→    typography: "{typography.body}"
+   261→    height: 64px
+   262→    padding: 12px 32px
+   263→  environment-quote-card:
+   264→    backgroundColor: "{colors.surface-tile-1}"
+   265→    textColor: "{colors.on-dark}"
+   266→    typography: "{typography.display-lg}"
+   267→    rounded: "{rounded.none}"
+   268→    padding: 80px
+   269→  footer:
+   270→    backgroundColor: "{colors.canvas-parchment}"
+   271→    textColor: "{colors.ink-muted-80}"
+   272→    typography: "{typography.fine-print}"
+   273→    padding: 64px
+   274→---
+   275→
+   276→## Overview
+   277→
+   278→Apple's web presence is a masterclass in **reverent product photography framed by near-invisible UI**. Every page is a stack of edge-to-edge product "tiles" — alternating light and dark canvases, each centered on a hero headline, a one-line tagline, two tiny blue pill CTAs, and an impossibly crisp product render. Nothing competes with the product. Typography is confident but quiet; color is either pure white, an off-white parchment, or a near-black tile; interactive elements are a single, quiet blue.
+   279→
+   280→Density is unusually low even by contemporary SaaS standards. Each tile occupies roughly one viewport, and there is no decorative chrome — no borders, no gradients, no decorative frames, no shadows on headlines. Elevation appears only when a product image rests on a surface (a single soft `rgba(0, 0, 0, 0.22) 3px 5px 30px` drop for visual weight). The result is a catalog that feels more like a museum gallery: the wall disappears and the artifact takes over.
+   281→
+   282→Store and shop surfaces retain the same chassis but switch modes. The product configurator (iPhone 17 Pro, accessories grid) introduces a tight grid of white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with a persistent thin sub-nav strip. The environment page leans darker and more editorial. Across all five surfaces the typographic system, spacing rhythm, and the single blue accent are consistent — this is one design language expressed at different volumes.
+   283→
+   284→**Key Characteristics:**
+   285→- Photography-first presentation; UI recedes so the product can speak.
+   286→- Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
+   287→- Single blue accent (`{colors.primary}` — #0066cc) carries every interactive element. No second brand color exists.
+   288→- Two button grammars: tiny blue pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
+   289→- SF Pro Display + SF Pro Text — negative letter-spacing at display sizes for the signature "Apple tight" headline feel.
+   290→- Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
+   291→- Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
+   292→- Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
+   293→
+   294→## Colors
+   295→
+   296→> **Source pages analyzed:** homepage, environment, store, iPhone 17 Pro buy page, accessories index. The color system is identical across all five surfaces; only the surface-mode mix differs.
+   297→
+   298→### Brand & Accent
+   299→- **Action Blue** (`{colors.primary}` — #0066cc): The single brand-level interactive color. All text links, all blue pill CTAs ("Learn more", "Buy"), and the focus ring root. This is Apple's quiet but universal "click me" signal. Press state shifts to a slightly darker variant via the active scale transform rather than a hex change.
+   300→- **Focus Blue** (`{colors.primary-focus}` — #0071e3): A marginally brighter sibling of Action Blue, reserved for the keyboard focus ring on buttons (`outline: 2px solid`).
+   301→- **Sky Link Blue** (`{colors.primary-on-dark}` — #2997ff): A brighter blue used on dark surfaces for in-copy links and inline callouts, where Action Blue would disappear against the tile background.
+   302→
+   303→### Surface
+   304→- **Pure White** (`{colors.canvas}` — #ffffff): The dominant canvas. Content, utility cards, store tiles, configurator grids.
+   305→- **Parchment** (`{colors.canvas-parchment}` — #f5f5f7): The signature Apple off-white. Used for alternating light tiles, footer region, and the default page canvas in store utility sections. Just different enough from white to create rhythm.
+   306→- **Pearl Button** (`{colors.surface-pearl}` — #fafafc): A near-white used as the fill for secondary "ghost" buttons — lighter than the parchment canvas so the button still reads as a button against `{colors.canvas-parchment}`.
+   307→- **Near-Black Tile 1** (`{colors.surface-tile-1}` — #272729): The primary dark-tile surface on the homepage product grid.
+   308→- **Near-Black Tile 2** (`{colors.surface-tile-2}` — #2a2a2c): A micro-step lighter — used where a dark tile sits directly above or below Tile 1 to create the faintest separation.
+   309→- **Near-Black Tile 3** (`{colors.surface-tile-3}` — #252527): A micro-step darker — used at the bottom of the stack and in embedded video/player frames.
+   310→- **Pure Black** (`{colors.surface-black}` — #000000): Reserved for true void — video player backgrounds, edge-to-edge photographic overlays, the global nav bar background.
+   311→- **Translucent Chip Gray** (`{colors.surface-chip-translucent}` — #d2d2d7): The base hex of the translucent gray chip used over photography for circular control buttons. In production, applied at ~64% alpha as `rgba(210, 210, 215, 0.64)`.
+   312→
+   313→### Text
+   314→- **Near-Black Ink** (`{colors.ink}` — #1d1d1f): The voice of every headline, every body paragraph, and the dark utility button's fill. Chosen instead of pure black to keep the page feeling photographic rather than printed.
+   315→- **Body** (`{colors.body}` — #1d1d1f): Same hex as ink — Apple uses one near-black tone for all text on light surfaces.
+   316→- **Body On Dark** (`{colors.body-on-dark}` — #ffffff): All text on dark tiles and on the global nav bar.
+   317→- **Body Muted** (`{colors.body-muted}` — #cccccc): Secondary copy on dark tiles where pure white would be too loud.
+   318→- **Ink Muted 80** (`{colors.ink-muted-80}` — #333333): Body text on the white Pearl Button surface — slightly softer than pure black.
+   319→- **Ink Muted 48** (`{colors.ink-muted-48}` — #7a7a7a): Disabled button text and legal fine-print.
+   320→
+   321→### Hairlines & Borders
+   322→- **Divider Soft** (`{colors.divider-soft}` — #f0f0f0): The "border" tone on secondary buttons — functions as a ring shadow rather than a hard line. In production, often applied as `rgba(0, 0, 0, 0.04)`.
+   323→- **Hairline** (`{colors.hairline}` — #e0e0e0): The 1px hairline border on store utility cards and configurator chips.
+   324→
+   325→### Brand Gradient
+   326→**No decorative gradients.** Atmospheric depth on product photography (the iPhone 17 Pro camera plate, the Apple Watch bands, AirPods reflections) is inherent to the imagery, not a CSS gradient overlay. The environment page's hero uses photographic atmosphere (mountain vista at dawn) but no gradient tokens are defined. Apple is the rare luxury-brand site with zero gradient-based design tokens.
+   327→
+   328→## Typography
+   329→
+   330→### Font Family
+   331→- **Display**: `SF Pro Display, system-ui, -apple-system, sans-serif` — Apple's proprietary display face, optimized for sizes ≥ 19px. Defines the voice of every headline.
+   332→- **Body / UI**: `SF Pro Text, system-ui, -apple-system, sans-serif` — the text-optimized variant used for body copy, captions, buttons, and links below 20px.
+   333→- **OpenType features**: `font-variant-numeric: numerator` is enabled on numeric links (pricing tables, spec sheets). Display sizes rely on tight tracking rather than contextual ligatures.
+   334→
+   335→### Hierarchy
+   336→
+   337→| Token | Size | Weight | Line Height | Letter Spacing | Use |
+   338→|---|---|---|---|---|---|
+   339→| `{typography.hero-display}` | 56px | 600 | 1.07 | -0.28px | Hero headline; the signature "Apple tight" tracking |
+   340→| `{typography.display-lg}` | 40px | 600 | 1.10 | 0 | Tile headlines atop every product tile |
+   341→| `{typography.display-md}` | 34px | 600 | 1.47 | -0.374px | Section heads (SF Pro Text at display proportions) |
+   342→| `{typography.lead}` | 28px | 400 | 1.14 | 0.196px | Product tile subcopy |
+   343→| `{typography.lead-airy}` | 24px | 300 | 1.5 | 0 | Environment-page lead paragraphs (the rare weight 300) |
+   344→| `{typography.tagline}` | 21px | 600 | 1.19 | 0.231px | Sub-tile tagline; sub-nav category name |
+   345→| `{typography.body-strong}` | 17px | 600 | 1.24 | -0.374px | Inline strong emphasis |
+   346→| `{typography.body}` | 17px | 400 | 1.47 | -0.374px | Default paragraph |
+   347→| `{typography.dense-link}` | 17px | 400 | 2.41 | 0 | Footer / store utility link lists (relaxed leading) |
+   348→| `{typography.caption}` | 14px | 400 | 1.43 | -0.224px | Secondary captions, button text |
+   349→| `{typography.caption-strong}` | 14px | 600 | 1.29 | -0.224px | Emphasized captions |
+   350→| `{typography.button-large}` | 18px | 300 | 1.0 | 0 | Store hero CTAs (the rare weight 300) |
+   351→| `{typography.button-utility}` | 14px | 400 | 1.29 | -0.224px | Utility/nav button labels |
+   352→| `{typography.fine-print}` | 12px | 400 | 1.0 | -0.12px | Fine-print, footer body |
+   353→| `{typography.micro-legal}` | 10px | 400 | 1.3 | -0.08px | Micro legal disclaimers |
+   354→| `{typography.nav-link}` | 12px | 400 | 1.0 | -0.12px | Global nav menu items |
+   355→
+   356→### Principles
+   357→
+   358→- **Negative letter-spacing at display sizes.** Every headline at 17px and up carries a slight tracking tighten (`-0.12 → -0.374px`). This produces the iconic "Apple tight" headline cadence. Never used at 12px or below.
+   359→- **Body copy at 17px, not 16px.** Apple breaks the SaaS convention and runs paragraph text at 17px. The extra pixel gives the page an unmistakable "reading, not scanning" pace.
+   360→- **Weight 300 is real and rare.** Used deliberately on a handful of large-size reads (`{typography.button-large}` at 18px/300 and `{typography.lead-airy}` at 24px/300). It's not an accident — it's a light-atmosphere cue reserved for moments where the content should feel airy.
+   361→- **Weight 600, not 700, for headlines.** Apple's headlines sit at weight 600. Weight 700 is used sparingly for `{typography.tagline}` (21px) when a touch more assertion is needed.
+   362→- **Line-height is context-specific.** Display sizes use 1.07–1.19 (tight). Body uses 1.47. Utility link stacks in the footer/store use an unusually relaxed 2.41 (`{typography.dense-link}`). The 2.41 is not a bug — it's how the footer's dense link columns breathe.
+   363→- **Weight 500 is deliberately absent.** The ladder is 300 / 400 / 600 / 700. Mid-weight readings always use 600.
+   364→
+   365→### Note on Font Substitutes
+   366→SF Pro is Apple's proprietary system font. When building off-system:
+   367→
+   368→- Use `system-ui, -apple-system, BlinkMacSystemFont` as the first stack entry — on macOS/iOS/Safari this resolves to the real SF Pro.
+   369→- For non-Apple platforms, **Inter** (Google Fonts, variable) is the closest open-source equivalent. Inter at weight 600 with `font-feature-settings: "ss03"` approximates SF Pro's rounded "a" character.
+   370→- Nudge `letter-spacing` down by `-0.01em` on display sizes to re-create the Apple tight feel; Inter's default tracking runs slightly wider than SF Pro.
+   371→- For body text, tighten line-height by `0.03` (from 1.47 → 1.44) when substituting Inter — Inter's taller x-height needs less leading.
+   372→
+   373→## Layout
+   374→
+   375→### Spacing System
+   376→- **Base unit:** 8px. Sub-base values (2, 4, 5, 6, 7) are used for tight typographic adjustments; structural layout snaps to 8/12/16/20/24.
+   377→- **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 17px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 80px.
+   378→- **Section vertical padding:** `{spacing.section}` (80px) inside a product tile; tiles stack edge-to-edge with 0 gap (the color change provides the break).
+   379→- **Card padding:** `{spacing.lg}` (24px) inside utility grid cards.
+   380→- **Button padding:** 8–11px vertical, 15–22px horizontal.
+   381→- **Universal rhythm constants:** the 17px body line-height multiplier (~25px line) and 21px tagline size show up on every analyzed page.
+   382→
+   383→### Grid & Container
+   384→- **Max content width:** ~980px on text-heavy sections (environment), ~1440px on product grids (store, accessories), full-bleed for product tiles (homepage).
+   385→- **Column patterns:** 3 to 5 column utility card grid on store/accessories; 2-column side-by-side tiles on homepage occasional sections; single-column centered stack on product tile heroes.
+   386→- **Gutters:** 20–24px between cards in a utility grid.
+   387→
+   388→### Whitespace Philosophy
+   389→Apple's whitespace is the product's pedestal. Every tile begins with at least 64px of air above its headline and 48–64px below. Product renders are never crowded; the nearest content to a product image is at least 40px away. The footer is the only area that breaks this — there, Apple goes deliberately dense to make the full information architecture visible at a glance.
+   390→
+   391→## Elevation & Depth
+   392→
+   393→| Level | Treatment | Use |
+   394→|---|---|---|
+   395→| Flat | No shadow, no border | Full-bleed tiles, global nav, footer, body sections |
+   396→| Soft hairline | 1px `rgba(0, 0, 0, 0.08)` border | Utility cards, sub-nav frosted-glass separator |
+   397→| Backdrop blur | `backdrop-filter: blur(N)` on Parchment 80% | Sub-nav and the iPhone buy floating sticky bar |
+   398→| Product shadow | `rgba(0, 0, 0, 0.22) 3px 5px 30px 0` | Product renders resting on a surface (the only true "shadow" in the system) |
+   399→
+   400→**Shadow philosophy.** Apple uses **exactly one** drop-shadow, and it is applied to photographic product imagery — never to cards, never to buttons, never to text. Elevation in the UI comes from (a) surface-color change (light tile ↔ dark tile) and (b) backdrop-blur on sticky bars. The single shadow is about giving the product weight, not about UI hierarchy.
+   401→
+   402→### Decorative Depth
+   403→- **Atmospheric imagery** on the environment page (photographic vista) supplies mood; no CSS gradient involved.
+   404→- **Edge-to-edge tile alternation** creates rhythm without borders or shadows — the color change itself is the divider.
+   405→- **Backdrop-filter blur** on `{component.sub-nav-frosted}` and `{component.floating-sticky-bar}` creates a "floating over content" effect that's functional, not decorative.
+   406→
+   407→## Shapes
+   408→
+   409→### Border Radius Scale
+   410→
+   411→| Token | Value | Use |
+   412→|---|---|---|
+   413→| `{rounded.none}` | 0px | Full-bleed product tiles (no corner rounding) |
+   414→| `{rounded.xs}` | 5px | Inline links when styled as subtle chips (rare) |
+   415→| `{rounded.sm}` | 8px | Dark utility buttons (Sign In, Bag), inline card imagery |
+   416→| `{rounded.md}` | 11px | White Pearl Button capsules |
+   417→| `{rounded.lg}` | 18px | Store utility cards, accessories grid cards |
+   418→| `{rounded.pill}` | 9999px | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
+   419→| `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography |
+   420→
+   421→### Photography Geometry
+   422→- **Hero imagery**: full-bleed, 21:9 or taller on the homepage; 16:9 on environment and shop pages. Product renders are photographic-realistic, often shot on a tinted surface that becomes the tile background.
+   423→- **Product renders**: PNG/WebP with transparency; rest on a surface tile and pick up the system shadow.
+   424→- **Accessory grid**: square 1:1 crops at `{rounded.lg}` (18px) radius, light neutral backgrounds, product centered with 20–40px internal padding.
+   425→- **No rounded imagery in hero tiles** — images are full-bleed rectangular. Rounding (`{rounded.sm}`, `{rounded.lg}`) appears only on inline card imagery.
+   426→- Lazy-loading via responsive `srcset` and `sizes` across all breakpoints; CDN-optimized WebP.
+   427→
+   428→## Components
+   429→
+   430→### Top Navigation
+   431→
+   432→**`global-nav`** — Persistent, ultra-thin black nav bar pinned to the top of every page. Background `{colors.surface-black}`, height 44px, text `{colors.on-dark}` in `{typography.nav-link}` (12px / 400 / -0.12px tracking). Links are quiet, spaced ~20px apart, running edge-to-edge across the top. Right-aligned cluster: Search, Bag icons — always visible. On mobile, collapses to hamburger at ~834px and the Apple logo centers.
+   433→
+   434→**`sub-nav-frosted`** — Surface-specific nav that sticks below the global nav. Background `{colors.canvas-parchment}` at 80% opacity with backdrop-filter blur, creating a frosted-glass effect. Height 52px. Content on left: product category name ("iPhone", "Store", "Accessories") in `{typography.tagline}` (21px / 600). Content right: inline nav links in `{typography.button-utility}` (14px), ending in a persistent `{component.button-primary}` ("Buy") or a utility link.
+   435→
+   436→### Buttons
+   437→
+   438→**`button-primary`** — The signature Apple action. Background `{colors.primary}` (Action Blue #0066cc), text `{colors.on-primary}` in `{typography.body}` (SF Pro Text 17px / 400), rounded `{rounded.pill}` (full pill — capsule-shaped), padding 11px × 22px. The full-pill radius IS the brand action signal.
+   439→- Active state: `{component.button-primary-active}` — `transform: scale(0.95)` (the system-wide micro-interaction).
+   440→- Focus state: `{component.button-primary-focus}` — 2px solid `{colors.primary-focus}` outline.
+   441→
+   442→**`button-secondary-pill`** — Used as the second CTA when two blue pills appear together ("Learn more" / "Buy"). Background transparent, text `{colors.primary}`, 1px solid `{colors.primary}` border, rounded `{rounded.pill}`, padding 11px × 22px. Reads as a "ghost pill."
+   443→
+   444→**`button-dark-utility`** — Global nav actions (Sign In, Bag, language selector). Background `{colors.ink}` (#1d1d1f), text `{colors.on-dark}` in `{typography.button-utility}` (14px / 400 / -0.224px tracking), rounded `{rounded.sm}` (8px), padding 8px × 15px. Active state shrinks via `transform: scale(0.95)`.
+   445→
+   446→**`button-pearl-capsule`** — Product-card secondary button. Background `{colors.surface-pearl}` (#fafafc), text `{colors.ink-muted-80}` in `{typography.caption}` (14px), 3px solid `{colors.divider-soft}` border (functions as a soft ring rather than a visible line), rounded `{rounded.md}` (11px), padding 8px × 14px.
+   447→
+   448→**`button-store-hero`** — A larger primary CTA used on store hero surfaces. Same Action Blue + Paper White as `{component.button-primary}`, but with `{typography.button-large}` (18px / 300 — note the rare weight 300) and slightly more padding (14px × 28px). Used sparingly on the store landing.
+   449→
+   450→**`button-icon-circular`** — Floats over photography. 44 × 44px, background `{colors.surface-chip-translucent}` at ~64% alpha, icon in `{colors.ink}`, rounded `{rounded.full}`. Used for carousel controls, close buttons, and in-image controls (product image thumbnails on the iPhone buy page).
+   451→
+   452→**`text-link`** — Inline body links in `{colors.primary}` (Action Blue). Underlined or non-underlined per context.
+   453→
+   454→**`text-link-on-dark`** — Inline body links on dark tiles in `{colors.primary-on-dark}` (Sky Link Blue #2997ff) — Action Blue would disappear against `{colors.surface-tile-1}`.
+   455→
+   456→### Cards & Containers
+   457→
+   458→**`product-tile-light`** — Full-bleed light tile. Background `{colors.canvas}` (white), text `{colors.ink}`, rounded `{rounded.none}` (0 — tiles touch edges), vertical padding `{spacing.section}` (80px). Centered stack: product name in `{typography.display-lg}` (40px / 600) → one-line tagline in `{typography.lead}` (28px / 400) → two `{component.button-primary}` CTAs ("Learn more" / "Buy") → product render resting on the surface with the system shadow.
+   459→
+   460→**`product-tile-parchment`** — Same as `{component.product-tile-light}` but on `{colors.canvas-parchment}` (#f5f5f7). Used to break two consecutive white tiles.
+   461→
+   462→**`product-tile-dark`** — Full-bleed dark tile. Background `{colors.surface-tile-1}` (#272729), text `{colors.on-dark}`, rounded `{rounded.none}`, vertical padding `{spacing.section}` (80px). Same content stack as the light tile but with `{component.text-link-on-dark}` for inline copy and `{component.button-primary}` (Action Blue still works on the dark surface). Used on the homepage product grid as the alternating dark band.
+   463→
+   464→**`product-tile-dark-2`** — Variant on `{colors.surface-tile-2}` (#2a2a2c). Used where a dark tile sits directly above or below `{component.product-tile-dark}` to create the faintest separation through micro-step lightness change.
+   465→
+   466→**`product-tile-dark-3`** — Variant on `{colors.surface-tile-3}` (#252527). Used at the bottom of the stack and in embedded video/player frames.
+   467→
+   468→**`store-utility-card`** — Used in store grid and accessories grid. Background `{colors.canvas}` (white), 1px solid `{colors.hairline}` border, rounded `{rounded.lg}` (18px), padding `{spacing.lg}` (24px). Top: product image (1:1 crop with `{rounded.sm}` (8px) inner image radius). Below: product name in `{typography.body-strong}` (17px / 600), price in `{typography.body}` (17px / 400), and a `{component.text-link}` ("Buy" or "Learn more"). No shadow by default; product render itself carries the system product-shadow.
+   469→
+   470→**`configurator-option-chip`** — Pill-shaped tappable cell used in the iPhone 17 Pro buy page. Background `{colors.canvas}`, text `{colors.ink}` in `{typography.caption}`, rounded `{rounded.pill}`, padding 12px × 16px. Contains a small product thumbnail + label + price delta. Arranged in a grid of 4–5 options per row.
+   471→
+   472→**`configurator-option-chip-selected`** — Selected state. Border upgrades to 2px solid `{colors.primary-focus}`. Same shape, same content.
+   473→
+   474→**`environment-quote-card`** — A photographic-canvas hero specific to the environment page. Dark photographic backdrop (mountain vista at dawn) with `{colors.surface-tile-1}` as the fallback color, centered white-text headline in `{typography.display-lg}` (40px), small green "Apple 2030" pictographic logo above the headline, single `{component.button-primary}` below. Padding `{spacing.section}` (80px).
+   475→
+   476→**`floating-sticky-bar`** — Floats at the bottom of the viewport on the iPhone 17 Pro buy page during scroll. Background `{colors.canvas-parchment}` at 80% opacity with `backdrop-filter: blur(N)`, height 64px, padding 12px × 32px. Left: running price total in `{typography.body}`. Right: `{component.button-primary}` ("Add to Bag").
+   477→
+   478→### Inputs & Forms
+   479→
+   480→**`search-input`** — The accessories search input. Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body}` (17px), 1px solid `rgba(0, 0, 0, 0.08)` border, rounded `{rounded.pill}` (full pill — search is also pill-shaped, matching the CTA grammar), padding 12px × 20px, height 44px. Leading icon: search glyph at 14px, muted tint.
+   481→
+   482→Error and validation states were not surfaced in the analyzed pages.
+   483→
+   484→### Footer
+   485→
+   486→**`footer`** — Background `{colors.canvas-parchment}` (#f5f5f7), text `{colors.ink-muted-80}`. Link columns in `{typography.dense-link}` (17px / 400 / 2.41 line-height — the relaxed leading is what makes the dense columns scannable). Column headings in `{typography.caption-strong}` (14px / 600). Legal row at the very bottom in `{typography.fine-print}` (12px / 400) with `{colors.ink-muted-48}` text. Vertical padding 64px.
+   487→
+   488→## Do's and Don'ts
+   489→
+   490→### Do
+   491→- Use `{colors.primary}` (Action Blue #0066cc) for every interactive element — links, pill CTAs, focus signals — and nothing else. The single accent is non-negotiable.
+   492→- Set headlines in `{typography.hero-display}` or `{typography.display-lg}` with negative letter-spacing (`-0.28 → -0.374px`) to get the signature "Apple tight" cadence.
+   493→- Run body copy at `{typography.body}` (17px / 400 / 1.47 / -0.374px) — not 16px. The extra pixel defines the brand's reading pace.
+   494→- Alternate `{component.product-tile-light}` (or parchment) and `{component.product-tile-dark}` for full-bleed section rhythm. The color change IS the divider.
+   495→- Reserve `{rounded.pill}` for the primary blue CTA and any other element that should read as an "action" (configurator chips, search input, sticky bar CTA).
+   496→- Apply the single product-shadow (`rgba(0, 0, 0, 0.22) 3px 5px 30px`) only to product renders resting on a surface — never on cards, buttons, or text.
+   497→- Use `transform: scale(0.95)` as the active/press state on every button — it's the system-wide micro-interaction.
+   498→- Keep the global nav `{colors.surface-black}` (true black) — it's the only place pure black appears on most pages.
+   499→
+   500→### Don't
+   501→- Don't introduce a second accent color; every "click me" signal is `{colors.primary}` (Action Blue).
+   502→- Don't add shadows to cards, buttons, or text — shadow is reserved for product imagery.
+   503→- Don't use gradients as decorative backgrounds; atmosphere comes from photography.
+   504→- Don't set body copy at weight 500 — Apple's ladder is 300 / 400 / 600 / 700, with 500 deliberately absent. Body is always 400; strong inline is 600; display is 600.
+   505→- Don't round full-bleed tiles — tiles are rectangular and edge-to-edge; the color change is the divider.
+   506→- Don't tighten line-height below 1.47 for body copy — the editorial leading is part of the brand.
+   507→- Don't mix radii grammars — use `{rounded.sm}` for compact utility, `{rounded.lg}` for utility cards, `{rounded.pill}` for pills, and nothing in between (except the rare `{rounded.md}` Pearl Button).
+   508→- Don't use `{colors.primary-on-dark}` (Sky Link Blue) on light surfaces — it's the dark-tile-only variant. Action Blue is for light surfaces.
+   509→
+   510→## Responsive Behavior
+   511→
+   512→### Breakpoints
+   513→
+   514→| Name | Width | Key Changes |
+   515→|---|---|---|
+   516→| Small phone | ≤ 419px | Single-column tiles; sub-nav collapses to category name + primary CTA only; hero typography drops to 28px |
+   517→| Phone | 420–640px | Single-column stack; product renders scale to 80% of tile width; hero h1 drops to 34px |
+   518→| Large phone | 641–735px | Tiles transition to tighter padding (48px vertical vs 80px); fine-print wraps |
+   519→| Tablet portrait | 736–833px | Global nav collapses to hamburger; sub-nav hides category chips, keeps primary CTA |
+   520→| Tablet landscape | 834–1023px | Global nav returns fully expanded; 3-column utility grids become 2-column |
+   521→| Small desktop | 1024–1068px | Product tiles use 2/3 width with margin gutters; hero h1 stays at 40px |
+   522→| Desktop | 1069–1440px | Full layout; 4–5 column store grids; 1440px content max |
+   523→| Wide desktop | ≥ 1441px | Content locks at 1440px, margins absorb extra width |
+   524→
+   525→The structural breakpoints that matter for agents: 1440px (content lock), 1068px (small-desktop), 833px (tablet landscape switch), 734px (tablet portrait), 640px (phone), 480px (small phone).
+   526→
+   527→### Touch Targets
+   528→- Minimum 44 × 44px. `{component.button-primary}` lands at ~44 × 100px (with the full-pill radius making the visible hit area more generous than the label suggests).
+   529→- `{component.button-icon-circular}` is exactly 44 × 44px.
+   530→- Global nav utility links are smaller (~32 × 80px) — they deliberately sit at a tighter target because they're precision desktop actions, and the mobile hamburger replaces them at ≤ 833px.
+   531→
+   532→### Collapsing Strategy
+   533→- **Global nav**: full horizontal link row on desktop → collapses to Apple logo + hamburger + bag icon at 834px and below.
+   534→- **Sub-nav**: category name + inline links + primary CTA → category name + primary CTA only at mobile; inline links move into a hamburger tray.
+   535→- **Product tiles**: stack from 2-column to 1-column at 834px; vertical padding tightens from 80px → 48px at small-phone.
+   536→- **Utility grids** (store, accessories): 5-col → 4-col (1440px) → 3-col (1068px) → 2-col (834px) → 1-col (640px).
+   537→- **Hero typography**: `{typography.hero-display}` (56px) → `{typography.display-lg}` (40px) at 1068px → 34px at 640px → 28px at 419px.
+   538→
+   539→### Image Behavior
+   540→- All product imagery uses responsive `srcset` with breakpoint-matched crops.
+   541→- Hero photography may switch art direction at mobile (e.g., the environment page's vista crops to a taller aspect ratio on mobile, framing the subject differently).
+   542→- Product renders maintain their 1:1 or 4:3 aspect ratios across breakpoints; only scale changes.
+   543→- Lazy-loading is default; the above-fold hero loads eagerly.
+   544→
+   545→## Iteration Guide
+   546→
+   547→1. Focus on ONE component at a time. Reference its YAML key directly (`{component.product-tile-dark}`, `{component.search-input}`).
+   548→2. Variants of an existing component (`-active`, `-focus`, `-2`, `-3`) live as separate entries in `components:`.
+   549→3. Use `{token.refs}` everywhere — never inline hex.
+   550→4. Never document hover. Default and Active/Pressed states only.
+   551→5. Display headlines stay SF Pro Display 600 with negative letter-spacing. Body stays SF Pro Text 400 at 17px. The boundary is unbreakable.
+   552→6. The single drop-shadow (`rgba(0, 0, 0, 0.22) 3px 5px 30px`) is reserved for product photography only.
+   553→7. When in doubt about emphasis: alternate surface (light → dark tile) before adding chrome.
+   554→
+   555→## Known Gaps
+   556→
+   557→- Form validation and error states were not surfaced on the analyzed pages; only the neutral search input is documented.
+   558→- The homepage's embedded video/player frame uses `{colors.surface-black}`; interior player controls are not documented (they're a platform widget, not a web-design token).
+   559→- Some component imagery is dynamic (rotating product hero) and its specific copy varies per surface — component specs name the structure, not the rotating content.
+   560→- Dark-mode counterparts for store and accessories utility cards were not surfaced on the analyzed pages; the system documented is the daytime/light-dominant variant Apple ships by default.
+   561→- Atmospheric photography (environment page mountain vista) is a content asset, not a design token; the documented `{component.environment-quote-card}` describes the structural surface only.
+   562→- The exact backdrop-filter blur radius on `{component.sub-nav-frosted}` and `{component.floating-sticky-bar}` is platform-dependent; production CSS uses `saturate(180%) blur(20px)` as a typical baseline but the value isn't formalized as a token.
+   563→

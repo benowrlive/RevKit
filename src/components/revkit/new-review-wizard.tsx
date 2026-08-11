@@ -2,11 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -19,13 +14,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import {
   Activity,
   FlaskConical,
@@ -35,9 +26,13 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  FileText,
 } from "lucide-react";
-import { REVIEW_TYPES, REVIEW_SUBTYPES, type ReviewType, type ReviewSubType } from "@/lib/types";
+import {
+  REVIEW_TYPES,
+  REVIEW_SUBTYPES,
+  type ReviewType,
+  type ReviewSubType,
+} from "@/lib/types";
 
 interface Props {
   open: boolean;
@@ -65,6 +60,16 @@ const SAMPLE_TITLES: Record<ReviewType, string> = {
   OVERVIEW: "Overview of reviews: antihypertensives in pregnancy",
   FLEXIBLE: "Custom review",
 };
+
+// Apple's signature decelerate-then-settle easing curve.
+const APPLE_EASE: [number, number, number, number] = [0.28, 0, 0.22, 1];
+
+const STEP_LABELS = [
+  "Choose type",
+  "Sub-type",
+  "Title & question",
+  "Confirm",
+] as const;
 
 export function NewReviewWizard({ open, onClose, onCreate }: Props) {
   const [step, setStep] = useState(0);
@@ -105,27 +110,38 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
   }
 
   const totalSteps = 4;
-  const progressPct = (step + 1) * (100 / totalSteps);
+  const progressPct = ((step + 1) / totalSteps) * 100;
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : close())}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="size-5 text-emerald-600" />
-            New Review Wizard
+      <DialogContent
+        className="max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+      >
+        {/* ─── Header: eyebrow + display title + description ─── */}
+        <DialogHeader className="gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0071e3]">
+            New Review
+          </span>
+          <DialogTitle className="font-display text-2xl font-semibold tracking-display">
+            Create a systematic review
           </DialogTitle>
-          <DialogDescription>
-            Create a new systematic review. You can change most fields later in the
-            Overview page.
+          <DialogDescription className="mt-1 text-sm text-fg-2">
+            Walk through four quick steps. You can refine every field later on
+            the Overview page.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <Progress value={progressPct} className="h-1" />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+        {/* ─── Step indicator: Apple progress bar + meta label ─── */}
+        <div className="space-y-2">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-surface-apple">
+            <div
+              className="h-full rounded-full bg-[#0071e3] transition-apple-slow"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.08em] text-meta">
             <span>Step {step + 1} of {totalSteps}</span>
-            <span>{step === 0 ? "Choose type" : step === 1 ? "Sub-type" : step === 2 ? "Title & question" : "Confirm"}</span>
+            <span>{STEP_LABELS[step]}</span>
           </div>
         </div>
 
@@ -136,13 +152,16 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-3"
+              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              className="space-y-4"
             >
-              <Label className="text-base font-medium">Which type of review do you want to create?</Label>
+              <label className="block font-display text-sm font-semibold tracking-display text-foreground">
+                Which type of review do you want to create?
+              </label>
               <RadioGroup
                 value={type ?? ""}
                 onValueChange={(v) => setType(v as ReviewType)}
-                className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                className="grid grid-cols-1 gap-3 md:grid-cols-2"
               >
                 {REVIEW_TYPES.map((t) => {
                   const Icon = TYPE_ICONS[t.value];
@@ -150,25 +169,55 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   return (
                     <label
                       key={t.value}
-                      className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                      className={`group cursor-pointer rounded-[18px] border-2 p-5 transition-apple ${
                         checked
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-sm"
-                          : "border-border hover:border-emerald-300 hover:bg-muted/50"
+                          ? "border-[#0071e3] bg-[#0071e3]/5"
+                          : "border-border hover:border-[#0071e3]/40 hover:bg-surface-warm"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <RadioGroupItem value={t.value} className="mt-1" />
+                        <RadioGroupItem
+                          value={t.value}
+                          className="sr-only"
+                          tabIndex={-1}
+                        />
+                        <div
+                          className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] transition-apple ${
+                            checked
+                              ? "bg-[#0071e3]/10 text-[#0071e3]"
+                              : "bg-surface-apple text-fg-2"
+                          }`}
+                        >
+                          <Icon className="size-4" />
+                        </div>
                         <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Icon className="size-4 text-emerald-600" />
-                            <span className="font-semibold">{t.label}</span>
+                          <div className="font-display text-sm font-semibold tracking-display text-foreground">
+                            {t.label}
                           </div>
-                          <p className="text-xs text-muted-foreground">{t.description}</p>
+                          <p className="mt-0.5 text-xs text-fg-2">
+                            {t.description}
+                          </p>
                           <div className="flex flex-wrap gap-1 pt-1">
-                            {t.usesRob2 && <Badge variant="secondary" className="text-[10px]">RoB 2</Badge>}
-                            {t.usesRobinsI && <Badge variant="secondary" className="text-[10px]">ROBINS-I</Badge>}
-                            {t.usesQuadas2 && <Badge variant="secondary" className="text-[10px]">QUADAS-2</Badge>}
-                            {t.usesDta && <Badge variant="secondary" className="text-[10px]">DTA</Badge>}
+                            {t.usesRob2 && (
+                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
+                                RoB 2
+                              </span>
+                            )}
+                            {t.usesRobinsI && (
+                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
+                                ROBINS-I
+                              </span>
+                            )}
+                            {t.usesQuadas2 && (
+                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
+                                QUADAS-2
+                              </span>
+                            )}
+                            {t.usesDta && (
+                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
+                                DTA
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -185,19 +234,25 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22, ease: APPLE_EASE }}
               className="space-y-4"
             >
-              <div>
-                <Label className="text-base font-medium">Sub-type (optional)</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Prognosis / Etiology / Qualitative reviews are implemented as a tag, not separate code paths.
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta">
+                  Sub-type (optional)
+                </label>
+                <p className="text-xs text-fg-2">
+                  Prognosis, Etiology, and Qualitative reviews are implemented
+                  as a tag rather than a separate code path.
                 </p>
               </div>
               <Select
                 value={subType ?? "none"}
-                onValueChange={(v) => setSubType(v === "none" ? null : (v as ReviewSubType))}
+                onValueChange={(v) =>
+                  setSubType(v === "none" ? null : (v as ReviewSubType))
+                }
               >
-                <SelectTrigger>
+                <SelectTrigger className="field-apple focus-halo h-auto w-full justify-between rounded-[8px] border-border bg-background px-3.5 py-3 text-[17px] shadow-none focus-visible:ring-0">
                   <SelectValue placeholder="None (default)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -209,12 +264,13 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-              <Card className="p-4 bg-muted/40 border-dashed">
-                <p className="text-xs text-muted-foreground">
-                  💡 <strong>Tip:</strong> Choose <strong>None</strong> if you're unsure — you can change this later.
-                  Sub-types mainly affect suggested data fields and defaults.
+              <div className="rounded-[12px] border border-dashed border-border bg-surface-warm p-4">
+                <p className="text-xs text-fg-2">
+                  <span className="font-semibold text-foreground">Tip:</span>{" "}
+                  Choose <span className="font-medium">None</span> if you're
+                  unsure — sub-types only nudge suggested fields and defaults.
                 </p>
-              </Card>
+              </div>
             </motion.div>
           )}
 
@@ -224,29 +280,42 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              className="space-y-5"
             >
               <div className="space-y-2">
-                <Label htmlFor="rev-title" className="text-base font-medium">Title</Label>
-                <Input
+                <label
+                  htmlFor="rev-title"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta"
+                >
+                  Title
+                </label>
+                <input
                   id="rev-title"
                   placeholder={type ? SAMPLE_TITLES[type] : "Enter review title"}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="text-base"
+                  className="field-apple focus-halo"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rev-rq" className="text-base font-medium">Research question (optional)</Label>
-                <Textarea
+                <label
+                  htmlFor="rev-rq"
+                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta"
+                >
+                  Research question (optional)
+                </label>
+                <textarea
                   id="rev-rq"
                   placeholder="e.g. In adults with acute sinusitis, do systemic corticosteroids improve symptom resolution compared to placebo?"
                   value={rq}
                   onChange={(e) => setRq(e.target.value)}
                   rows={4}
+                  className="field-apple focus-halo min-h-[80px] resize-y"
                 />
-                <p className="text-xs text-muted-foreground">
-                  A clear PICO question (Population, Intervention, Comparator, Outcome) helps guide the review.
+                <p className="mt-2 text-xs text-meta">
+                  A clear PICO question (Population, Intervention, Comparator,
+                  Outcome) helps guide the review.
                 </p>
               </div>
             </motion.div>
@@ -258,79 +327,109 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-3"
+              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              className="space-y-4"
             >
-              <Label className="text-base font-medium">Confirm and create</Label>
-              <Card className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Type</span>
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+              <label className="block font-display text-sm font-semibold tracking-display text-foreground">
+                Confirm and create
+              </label>
+              <div className="card-apple space-y-3 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs uppercase tracking-[0.08em] text-meta">
+                    Type
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
                     {REVIEW_TYPES.find((t) => t.value === type)?.label}
-                  </Badge>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Sub-type</span>
-                  <span className="text-sm">
-                    {subType ? REVIEW_SUBTYPES.find((s) => s.value === subType)?.label : "None"}
                   </span>
                 </div>
-                <Separator />
+                <div className="border-t border-[var(--border-soft)]" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs uppercase tracking-[0.08em] text-meta">
+                    Sub-type
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    {subType
+                      ? REVIEW_SUBTYPES.find((s) => s.value === subType)?.label
+                      : "None"}
+                  </span>
+                </div>
+                <div className="border-t border-[var(--border-soft)]" />
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-xs text-muted-foreground shrink-0">Title</span>
-                  <span className="text-sm font-medium text-right">{title || "(no title)"}</span>
+                  <span className="shrink-0 text-xs uppercase tracking-[0.08em] text-meta">
+                    Title
+                  </span>
+                  <span className="text-right text-sm font-medium text-foreground">
+                    {title || "(no title)"}
+                  </span>
                 </div>
                 {rq && (
                   <>
-                    <Separator />
+                    <div className="border-t border-[var(--border-soft)]" />
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-xs text-muted-foreground shrink-0">Research question</span>
-                      <span className="text-xs text-right italic">{rq}</span>
+                      <span className="shrink-0 text-xs uppercase tracking-[0.08em] text-meta">
+                        Research question
+                      </span>
+                      <span className="text-right text-xs italic text-fg-2">
+                        {rq}
+                      </span>
                     </div>
                   </>
                 )}
-              </Card>
-              <p className="text-xs text-muted-foreground">
-                A fresh review starts in the <strong>Scoping</strong> phase. Use the phase stepper on the
-                Overview page to advance through Screening → Extraction → Analysis → Writing → Complete.
+              </div>
+              <p className="text-xs text-meta">
+                A fresh review starts in the{" "}
+                <span className="font-medium text-foreground">Scoping</span>{" "}
+                phase. Use the phase stepper on the Overview page to advance
+                through Screening → Extraction → Analysis → Writing → Complete.
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <DialogFooter className="justify-between">
-          <Button variant="ghost" onClick={close}>
+        {/* ─── Footer: Cancel (text-only) + Back (ring) + Next/Create (pill) ─── */}
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={close}
+            className="text-sm font-medium text-fg-2 transition-apple hover:text-foreground focus-visible:outline-none"
+          >
             Cancel
-          </Button>
-          <div className="flex gap-2">
+          </button>
+          <div className="flex items-center gap-2">
             {step > 0 && (
-              <Button variant="outline" onClick={back}>
-                <ArrowLeft className="size-4 mr-1" />
+              <button
+                type="button"
+                onClick={back}
+                className="btn-pill-secondary font-display tracking-display"
+              >
+                <ArrowLeft className="size-4" />
                 Back
-              </Button>
+              </button>
             )}
             {step < 3 && (
-              <Button
+              <button
+                type="button"
                 onClick={next}
                 disabled={step === 0 && !type}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="btn-pill font-display tracking-display"
               >
                 Next
-                <ArrowRight className="size-4 ml-1" />
-              </Button>
+                <ArrowRight className="size-4" />
+              </button>
             )}
             {step === 3 && (
-              <Button
+              <button
+                type="button"
                 onClick={finish}
                 disabled={!type || !title.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="btn-pill font-display tracking-display"
               >
-                <Check className="size-4 mr-1" />
+                <Check className="size-4" />
                 Create review
-              </Button>
+              </button>
             )}
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

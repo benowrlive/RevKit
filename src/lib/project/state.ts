@@ -471,7 +471,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       const newRefs: Reference[] = refs.map((r) => ({
         ...r,
         id: newId("ref"),
-        reviewId: s.review.id,
+        reviewId: s.review!.id,
       }));
       added = newRefs.length;
       // Dedup by (lowercase title + year) — skip if already present.

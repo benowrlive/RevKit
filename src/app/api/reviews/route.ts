@@ -136,7 +136,7 @@ export async function loadReviewTree(reviewRow: ReviewRow): Promise<Review> {
         id: a.id,
         studyId: a.studyId,
         tool: a.tool as "ROB2" | "ROBINS_I" | "QUADAS_2",
-        domainJudgements: JSON.parse(a.domainJudgements) as Record<string, string>,
+        domainJudgements: JSON.parse(a.domainJudgements) as Record<string, Review["robAssessments"][number]["domainJudgements"][string]>,
         signallingAnswers: JSON.parse(a.signallingAnswers) as Record<
           string,
           "yes" | "no" | "py" | "ni" | "na"

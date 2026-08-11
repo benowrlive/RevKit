@@ -399,3 +399,144 @@ Stage Summary:
 - ESLint: clean (0 errors, 0 warnings) on all 5 new files.
 - TypeScript: clean on all 5 new files (0 errors introduced).
 - Acceptance criteria verified: `bun run lint` and `bunx tsc --noEmit` both clean for the new code.
+
+---
+Task ID: A-5
+Agent: apple-wizard-redesign
+Task: Redesign NewReviewWizard dialog with Apple design language.
+Work Log:
+- Read worklog.md, skills/design/design-systems/brand-inspiration/apple/DESIGN.md, and tokens.css to lock in Apple's 4-stop neutral ramp, single #0071e3 accent, tiered radius (8/12/18/980px), and cubic-bezier(0.28, 0, 0.22, 1) motion curve.
+- Audited existing new-review-wizard.tsx — emerald-heavy shadcn default with Progress/Badge/Separator/Card/Button/Input/Textarea wrappers and emerald-600 CTAs.
+- Cross-checked globals.css to confirm available Apple utilities (.btn-pill, .btn-pill-secondary, .eyebrow, .card-apple, .field-apple, .focus-halo, .transition-apple[-slow], .tracking-display, .bg-surface-apple, .bg-surface-warm, .text-meta, .text-fg-2). Confirmed --color-border-soft is NOT registered in @theme inline, so separators use arbitrary `border-[var(--border-soft)]` (#e8e8ed).
+- Rewrote /home/z/my-project/src/components/revkit/new-review-wizard.tsx end-to-end:
+  • Dropped unused shadcn primitives (Button, Card, Input, Textarea, Label, Badge, Separator, Progress, DialogFooter, FileText icon) — replaced with raw HTML + Apple utility classes for full control of the editorial look.
+  • DialogContent: `max-w-2xl sm:max-w-2xl rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]` — overrides shadcn's max-w-lg/p-6/rounded-lg defaults.
+  • Header: blue eyebrow "NEW REVIEW" (11px uppercase tracking-0.08em #0071e3 600) → SF Pro Display title `font-display text-2xl font-semibold tracking-display` → description `text-sm text-fg-2 mt-1`.
+  • Step indicator: 1px track `bg-surface-apple` + `bg-[#0071e3]` fill with `transition-apple-slow`, then `text-[11px] uppercase tracking-[0.08em] text-meta` "STEP 1 OF 4 / Choose type".
+  • Step 1 — radio cards: `label.cursor-pointer` with `border-2 rounded-[18px] p-5 transition-apple`; selected = `border-[#0071e3] bg-[#0071e3]/5`; unselected hover = `border-[#0071e3]/40 bg-surface-warm`. RadioGroupItem visually hidden (`sr-only`) — icon tile (size-9 rounded-[10px]) doubles as the selection affordance, switching `bg-surface-apple text-fg-2` → `bg-[#0071e3]/10 text-[#0071e3]` when checked. Tool badges rendered as raw spans `text-[10px] text-meta bg-surface-apple rounded-full px-1.5 py-0.5`.
+  • Step 2 — Select trigger: kept shadcn Select (for dropdown UX) but overrode trigger with `field-apple focus-halo h-auto w-full justify-between rounded-[8px] border-border bg-background px-3.5 py-3 text-[17px] shadow-none focus-visible:ring-0` to neutralize shadcn defaults and let field-apple's focus halo take over. Helper card: raw `div border border-dashed border-border bg-surface-warm rounded-[12px] p-4`.
+  • Step 3 — Title input + research question textarea: raw `<input>`/`<textarea>` with `field-apple focus-halo` (textarea adds `min-h-[80px] resize-y`). Labels `text-[11px] uppercase tracking-[0.08em] text-meta font-semibold`; helper text `text-xs text-meta mt-2`.
+  • Step 4 — Confirm summary: `card-apple space-y-3 p-5` with each row label (`text-xs uppercase tracking-[0.08em] text-meta`) left + value (`text-sm font-medium`) right. Separators are raw `border-t border-[var(--border-soft)]` divs (Apple's inner-row #e8e8ed hairline). Replaced the emerald Badge on type with a plain `text-sm font-medium` value to drop the secondary color.
+  • Footer: Cancel = raw `<button>` text-only (`text-sm font-medium text-fg-2 transition-apple hover:text-foreground`); Back = `btn-pill-secondary` (transparent + hairline ring); Next/Create = `btn-pill` (Apple blue capsule). Both pills get `font-display tracking-display` for the machined-headline feel. Right-aligned via `justify-between` on the footer row.
+  • Animations: kept existing framer-motion AnimatePresence (mode="wait", opacity+x slide), but swapped the transition to `{ duration: 0.22, ease: APPLE_EASE }` where `APPLE_EASE` is a typed `[number, number, number, number] = [0.28, 0, 0.22, 1]` constant — satisfies framer-motion v12's tuple typing for cubic-bezier eases.
+  • All state logic (step, type, subType, title, rq) and handlers (next, back, finish, reset, close) preserved verbatim. Strict TypeScript, no `any`, "use client" directive retained.
+- Ran `bun run lint` → clean (0 errors, 0 warnings).
+- Ran `bunx tsc --noEmit` → no errors introduced in new-review-wizard.tsx (project has 7 pre-existing errors in unrelated files: route.ts, settings-page.tsx, welcome-screen.tsx, state.ts, and example/skills directories — none touch the wizard).
+Stage Summary:
+- NewReviewWizard is now an Apple-flavoured modal: pure white canvas, 18px radius, raised 12/32 shadow, hairline border, 8-padding interior, eyebrow + display title, Apple-blue progress bar, single #0071e3 accent throughout, no emerald, no shadcn Card/Badge/Separator chrome.
+- All 4 steps (Choose type → Sub-type → Title & question → Confirm) and Create/Back/Cancel flow intact; framer-motion step transitions now run on Apple's cubic-bezier(0.28, 0, 0.22, 1) curve at 220ms.
+- Acceptance criteria verified: `bun run lint` clean; no new TypeScript errors introduced in the file; mobile-first responsive (grid collapses 2→1 col at md breakpoint, dialog max-w-2xl + max-h-90vh + overflow-y-auto).
+
+---
+Task ID: A-4
+Agent: apple-workspace-redesign
+Task: Redesign WorkspaceShell + OverviewPage with Apple design language.
+
+Work Log:
+- Read worklog.md (project context) and Apple design system files (DESIGN.md + tokens.css) to internalize the brand language: single Apple Action Blue (#0071e3) accent, SF Pro Display/Text typography, 4-stop neutral ramp (#1d1d1f → #86868b), tiered radius (8/12/18/980px), restrained elevation, cubic-bezier(0.28, 0, 0.22, 1) motion.
+- Audited existing workspace-shell.tsx (537 LOC) and confirmed globals.css already exposes the Apple utility classes (.btn-pill, .card-apple, .field-apple, .eyebrow, .band-*, .scrollbar-apple, .focus-halo, .transition-apple, surface/foreground utilities).
+- Top bar redesign: replaced `bg-background/95 backdrop-blur sticky` with Apple frosted glass `bg-background/80 backdrop-blur-xl`; tightened padding to `px-4 sm:px-6 py-3`; swapped emerald Save button for `.btn-pill` Apple capsule (always visible, disabled when clean per Apple toolbar consistency rule); Library back button now a chevron-led text-only ghost link (`text-fg-2 hover:text-foreground`); title uses `font-display font-semibold tracking-display text-base`; type label is an Apple eyebrow (`text-[11px] uppercase tracking-[0.08em] text-meta`); phase badge is an Apple-blue pill (`bg-[#0071e3] text-white rounded-full`); dirty indicator is now a tiny 1.5px Apple-blue dot.
+- Sidebar redesign: dropped the mobile-collapsed `w-14` for a desktop-first `w-56`; surface switched to `bg-surface-warm` (#fbfbfd); nav items use Apple-system `text-[14px]` with active state `bg-[#0071e3]/10 text-[#0071e3] font-medium`, inactive `text-fg-2 hover:bg-surface-apple hover:text-foreground`; badges now right-aligned Apple metadata (`ml-auto text-[11px] text-meta font-medium`); footer preserves version/format/review-id as Apple fine-print.
+- Main content area: padded to `p-6 md:p-10` with `max-w-5xl mx-auto` reading measure; kept framer-motion AnimatePresence page transitions (opacity + 8px y offset, 150ms).
+- Overview page redesign:
+  * Page header now uses Apple eyebrow → display headline → subhead pattern (eyebrow "OVERVIEW" in Apple blue 11px uppercase 0.08em tracking; H1 in `font-display text-3xl md:text-4xl font-semibold tracking-display`).
+  * Phase stepper rebuilt as Apple segmented control: `.card-apple p-6` card, custom `h-1 bg-surface-apple` progress bar with `bg-[#0071e3]` fill, phase pills with `rounded-full px-3 py-1 text-[12px] font-medium transition-apple` — active solid blue, completed `bg-[#0071e3]/10 text-[#0071e3]` with CheckCircle2, future `bg-surface-apple text-meta`.
+  * Editable fields now live in `.card-apple p-6` cards on a `sm:grid-cols-2 gap-5` grid; inputs use `.field-apple` class directly (Apple border-led, blue focus halo); labels are Apple eyebrows (`text-[11px] uppercase tracking-[0.08em] text-meta font-semibold`).
+  * Quick stats replaced emerald numerals with Apple-blue KPI tiles (`font-display text-4xl font-semibold text-[#0071e3] tracking-display`) over `text-[11px] uppercase tracking-[0.08em] text-meta` labels.
+  * Reference screening bars use Apple semantic colors: success #16a34a, warning #eab308, danger #dc2626, neutral #86868b — on `h-1.5 rounded-full bg-surface-apple` track.
+  * Demo data loader card: `.card-apple border-dashed bg-surface-warm` with Apple-blue icon tile (`size-10 rounded-xl bg-[#0071e3]/10 text-[#0071e3]`); CTA is a smaller `.btn-pill` (`px-4 py-1.5 text-[13px]`).
+- Code-quality pass: removed unused imports (Badge, Card, Progress, Select family, useState, ArrowLeft); added ChevronLeft for back button; typed NAV array explicitly; tightened ReviewState hook usage; preserved all existing functionality (handleSave fetch + markSaved + recent-files mirror, beforeunload handler, phase stepper logic, demo data loader). All emerald/amber/rose literals replaced with Apple tokens.
+- Verified with `bun run lint` → clean (eslint passes with zero warnings/errors). `bunx tsc --noEmit` shows no errors in workspace-shell.tsx (remaining TS errors in repo are pre-existing in unrelated files: route.ts, settings-page.tsx, welcome-screen.tsx, state.ts, skills/, examples/).
+
+Stage Summary:
+- workspace-shell.tsx fully restyled to Apple design language; both `WorkspaceShell` and `OverviewPage` exports retain identical prop shapes and behavior, so no caller-side changes are required.
+- All emerald/amber/rose brand-mismatched colors removed in favor of `#0071e3` (Apple Action Blue) plus Apple semantic palette (#16a34a / #eab308 / #dc2626 / #86868b) for the reference screening chart.
+- Typography now uses SF Pro stack via `font-display` + `tracking-display` on headings and `text-[11px] uppercase tracking-[0.08em]` eyebrows throughout, with `text-meta` (#86868b) for secondary labels.
+- Surfaces honor Apple's 3-tier ladder: `bg-background` (#ffffff) main canvas, `bg-surface-warm` (#fbfbfd) sidebar + dashed demo card, `bg-surface-apple` (#f5f5f7) hover states and progress tracks.
+- Top bar uses Apple frosted-glass `bg-background/80 backdrop-blur-xl` with hairline `border-b border-border`; Save button is the signature `.btn-pill` capsule (always visible, disabled state uses the .btn-pill:disabled opacity:0.4 from globals.css).
+- Sidebar is desktop-first `w-56` with Apple-blue tint active state; nav badges use right-aligned `text-meta` metadata style.
+- Main content area uses `max-w-5xl mx-auto p-6 md:p-10` reading measure with `scrollbar-apple` on scrollables; framer-motion AnimatePresence page transitions preserved (150ms opacity + y:8).
+- Lint clean; no TypeScript regressions introduced.
+
+---
+Task ID: A-3
+Agent: apple-welcome-redesign
+Task: Redesign WelcomeScreen with Apple design language.
+
+Work Log:
+- Read project context (`worklog.md`), Apple `DESIGN.md` + `tokens.css`, existing `welcome-screen.tsx`, `globals.css`, `tailwind.config.ts`, shadcn `Card`/`Badge`/`Skeleton`/`Button` primitives, and `lib/types.ts` to confirm `ReviewType` / `ReviewSubType` union shape (so the welcome-screen flow can narrow `subType: ReviewSubType` → `subType: null` cleanly without `any`).
+- Baseline-check: `bun run lint` clean (0 errors / 0 warnings). `bunx tsc --noEmit` showed 8 pre-existing errors across `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/components/revkit/{settings-page,welcome-screen,workspace-shell}.tsx`, and `src/lib/project/state.ts`. Confirmed the pre-existing `welcome-screen.tsx` error was the `subType: ReviewSubType` → `subType: null` mismatch where the wizard's `onCreate` payload was passed straight through to `onNew` (Props contract expects `subType: null`).
+- Rebuilt `/home/z/my-project/src/components/revkit/welcome-screen.tsx` (named export `WelcomeScreen`, `"use client"`) end-to-end. Structure, top to bottom:
+  1. **Root**: `min-h-screen flex flex-col bg-background` — pure Apple white, emerald gradient removed entirely. `font-display` is applied automatically to all `h1`-`h4` via the `@layer base` rule already in `globals.css`, so headings inherit Apple SF Pro Display without an explicit class.
+  2. **Sticky header** (slim Apple chrome): `border-b border-border-soft bg-background/80 backdrop-blur-md`, `max-w-5xl` container, hairline so it recedes. `RevKitLogo` (already-redesigned solid blue tile) at `size-7`, brand lockup with `tracking-display` title, uppercase `text-meta` subtitle. Right side carries the `v0.1.0 · MIT` meta and the `text-link` (Apple Body Link Blue) Cochrane-handbook link with `.focus-halo`.
+  3. **Hero billboard**: `px-4 sm:px-6 lg:px-8 py-20 md:py-32` (≈ Apple's `--section-y-desktop: 100px`), centered `max-w-3xl mx-auto text-center`. Framer Motion fade-in with `ease: [0.28, 0, 0.22, 1]` (Apple's standard curve) over 550ms. Eyebrow `OPEN-SOURCE · COCHRANE-STYLE SYSTEMATIC REVIEWS` (CSS auto-uppercases via `.eyebrow`). H1 `text-5xl md:text-6xl font-semibold tracking-display leading-[1.07]` with `<br className="hidden sm:block" />` for the controlled two-line break. Subhead `text-xl text-fg-2 tracking-body max-w-2xl mx-auto leading-relaxed`. Two CTAs centered: primary `.btn-pill` "Create new review" + secondary `.btn-pill btn-pill-secondary` "Browse library" (scrolls to `#recent-saved`).
+  4. **Action cards row**: 3 Apple tile cards in `grid sm:grid-cols-3 gap-4`. Each is a plain `<div className="card-apple p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">` — chose `<div>` over shadcn `Card` because shadcn `Card` ships `shadow-sm rounded-xl py-6 gap-6` defaults that fight `.card-apple` (which deliberately renders flat with no shadow, 18px radius, hover-only `elev-raised`). Primary "New Review" card uses `bg-[#0071e3] text-white` on its 44px icon tile + an `.eyebrow` (blue); Open + Demo cards walk down to `bg-surface-apple text-fg-2` icon tiles and `.eyebrow text-meta` (gray) to honor the "Apple Action Blue only on the primary CTA card" rule. Each card has an uppercase eyebrow, 44px icon tile, `text-xl font-semibold tracking-display` heading, 2-line `text-sm text-fg-2 tracking-body line-clamp-2` description, and a full-width CTA button at the bottom (`mt-auto` so the buttons line up across cards of differing description heights). Primary card → `.btn-pill`; secondary cards → `.btn-pill btn-pill-secondary`.
+  5. **Feature highlights strip**: `<section className="band-warm py-16 md:py-20">` (Apple's near-white `--surface-warm: #fbfbfd` band for chapter transition). 4 inline cards in `grid sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-10` — no borders between them, just whitespace (Apple's discipline). Each card is a 32px `bg-surface-apple text-fg-2` icon chip + `text-sm font-medium tracking-display` label + `text-xs text-meta tracking-body` description (Meta-analysis engine / Risk of bias / PRISMA 2020 / Exports).
+  6. **Saved reviews library** (`#recent-saved`): eyebrow header "YOUR REVIEW LIBRARY" + `text-meta` count, then either Skeletons (loading), a 2-up grid of `.card-apple` review tiles, or an empty state. Each review tile is `card-apple p-5 hover:-translate-y-0.5 transition-apple-slow cursor-pointer group focus-halo` (with `role="button" tabIndex={0}` + `onKeyDown` Enter/Space handler for keyboard accessibility — the original `<Card onClick=…>` had no keyboard handler). Left tile is `size-12 rounded-lg bg-[#0071e3]/10 text-[#0071e3] group-hover:bg-[#0071e3] group-hover:text-white transition-apple` (soft Apple-blue tint that fills solid on hover). Title in `<h3 className="text-base font-medium tracking-display truncate">`. Metadata row: outline `Badge` for review type + secondary `Badge` for sub-type + secondary `Badge` for phase + `text-[10px] text-meta` date pushed `ml-auto`. Delete button is `opacity-0 group-hover:opacity-100 focus-visible:opacity-100` so it only appears on hover (or keyboard focus for accessibility), with `hover:text-destructive`, `.focus-halo`, `e.stopPropagation()` on click so it doesn't trigger the parent `onOpen`.
+  7. **Empty state**: centered `py-20` block with a 40px `FolderOpen` in `text-meta`, `text-base font-medium tracking-display` title, `text-sm text-fg-2 tracking-body max-w-sm mx-auto` body, and a single `.btn-pill btn-pill-secondary` CTA. No decorative elements (no dashed border, no illustration).
+  8. **Footer**: `pt-20 pb-10` with a centered single line of `text-xs text-meta tracking-body` copy under a `border-t border-border` hairline. No logo, no social, no decoration.
+- **TypeScript fix**: changed the `NewReviewWizard` `onCreate` handler from `onNew(input)` (which triggered a TS error: `subType: ReviewSubType` is wider than the Props contract's `subType: null`) to an explicit destructure-and-rebuild: `onNew({ title: input.title, type: input.type, subType: null, researchQuestion: input.researchQuestion })`. This is semantically correct (the welcome-screen flow only ever creates top-level reviews with no sub-type) and satisfies strict TS without any `as` cast through `any`. This eliminates one pre-existing TS error.
+- **Toast migration**: replaced `alert(\`Failed to delete: ${e.message}\`)` with `toast.error(\`Failed to delete: ${msg}\`)` (sonner), and added `toast.success("Review deleted")` on the success path. Kept native `confirm(...)` for the delete confirmation (it's a confirmation step, not a transient toast).
+- **Icon/color audit**: removed all emerald-600/100/700/950 classes (4 occurrences in cards, 2 in saved-review tile hover, 1 in the hero badge, 1 in the hero H1 gradient). Replaced with Apple Action Blue hex (`#0071e3`, `#0077ed`, `#0066cc`) and the `bg-surface-apple text-fg-2` neutral tile pattern. Removed the `text-blue-*`, `text-amber-*` colored icon backgrounds (the demo card's amber-100/700 was the most jarring) and replaced with the same neutral surface tile for visual consistency across the three action cards. Also removed `Sparkles`/`Clock`/`Settings2` (Clock was only used for the section header which is now an eyebrow; Sparkles was decorative in the hero badge + demo button; Settings2 is still in the TYPE_ICONS map for FLEXIBLE reviews).
+- **Removed dead state**: dropped the `recent` state (`useState<RecentFileEntry[]>(() => loadRecentFiles())`) and the `setRecent(loadRecentFiles())` call inside `handleDelete`. The state was set but never read in the JSX — keeping it would mean dead code in a freshly-rewritten component. `removeRecentFile(id)` (the actual side-effect on localStorage) is still called, so behavior is preserved. Also dropped the `loadRecentFiles` / `RecentFileEntry` imports that were only there to feed the dead state.
+- **Type tightening**: typed the fetch response payload as `{ reviews?: SavedReviewMeta[] }` (was implicitly `any` from `.json()`), and tightened the `.catch` callbacks to `unknown` with `e instanceof Error` narrowing (was `(e)` untyped → `e.message` access).
+- Lint: `bun run lint` clean (0 errors / 0 warnings). TypeScript: 0 errors introduced in `welcome-screen.tsx` (1 pre-existing error removed). Total project tsc error count went from 8 → 7.
+
+Stage Summary:
+- Single file rewritten: `/home/z/my-project/src/components/revkit/welcome-screen.tsx` (370 lines, named `WelcomeScreen` export, `"use client"`, strict TS, no `any`).
+- Apple design language applied across all 7 sections (sticky header / hero billboard / action tile row / spec strip / saved review library / empty state / footer):
+  - Pure white hero canvas (emerald gradient removed).
+  - SF Pro Display on all headings (via `@layer base` h1-h4 rule), `tracking-display` (-0.015em) on display heads, `tracking-body` (-0.022em) on body copy.
+  - Single Apple Action Blue (`#0071e3`) accent reserved for: hero primary CTA, primary action card's icon tile + eyebrow, saved-review left tile (and its hover fill), header logo (already Apple-styled), `.text-link` Cochrane handbook link. Everything else walks down the 4-stop neutral ramp (`text-fg-2` / `text-meta`).
+  - Card geometry: 18px radius (`.card-apple` → `--radius-lg`), 8px on inputs (`rounded-lg`/`rounded-md` on small icon chips), 980px capsule on all CTAs (`.btn-pill`).
+  - Restraint: zero shadows by default — `.card-apple:hover` lifts the `0_12px_32px_rgba(0,0,0,0.08)` raised shadow; tiles also `hover:-translate-y-0.5`.
+  - Motion: `.transition-apple` (cubic-bezier(0.28, 0, 0.22, 1), 150ms) on buttons/links; `.transition-apple-slow` (220ms) on cards. Framer Motion hero entrance uses the same Apple curve.
+  - Focus: `.focus-halo` (4px blue glow ring) on every interactive element (buttons, links, review tiles, delete button).
+  - Mobile-first responsive with `sm:` / `md:` / `lg:` breakpoints; container constrained to Apple's `--container-max: 1024px` (`max-w-5xl`).
+  - Replaced `alert(...)` with `toast.error(...)` (sonner) for transient error feedback; added `toast.success(...)` for delete confirmation. Kept native `confirm(...)` for the destructive-action confirmation step.
+  - shadcn primitives used: `Badge` (saved-review metadata row), `Skeleton` (loading state). shadcn `Card` deliberately skipped in favor of plain `<div className="card-apple …">` because shadcn `Card` ships `shadow-sm rounded-xl py-6 gap-6` defaults that conflict with Apple's flat-default / hover-only-raised / 18px-radius / `gap-0` discipline; fighting those defaults inline was less clean than just using `.card-apple` directly.
+  - Accessibility: review tiles promoted from `<Card onClick>` (keyboard-inaccessible) to `<div role="button" tabIndex={0} onClick onKeyDown>` with Enter + Space handlers and `.focus-halo` on focus. Delete button stays invisible until `group-hover` OR `focus-visible` so keyboard users can reach it.
+- Acceptance verified:
+  - `bun run lint` → 0 errors / 0 warnings.
+  - `bunx tsc --noEmit` → 0 errors in `welcome-screen.tsx` (1 pre-existing error eliminated; remaining 7 errors are all in unrelated files: `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/components/revkit/settings-page.tsx`, `src/lib/project/state.ts`).
+  - All 6 emerald color classes from the original (`emerald-50/30`, `emerald-100`, `emerald-600`, `emerald-700`, `emerald-800`, `emerald-950`) are gone; replaced with Apple Action Blue hex values and the neutral `bg-surface-apple` / `text-fg-2` / `text-meta` ramp.
+  - Props contract preserved verbatim: `interface Props { onNew: (input: { title: string; type: ReviewType; subType: null; researchQuestion: string }) => void; onOpen: (id: string) => void; refreshKey: number; }` — no signature changes.
+
+---
+Task ID: A-summary
+Agent: main
+Task: Apply Apple design language to RevKit UI (welcome screen, workspace shell, wizard, logo).
+
+Work Log:
+- Attempted `npx skills@latest add emilkowalski/skills` — command consistently timed out (network-restricted sandbox). However, the local `design` skill already ships a complete Apple brand-inspiration folder at `skills/design/design-systems/brand-inspiration/apple/` with DESIGN.md + tokens.css + components.html.
+- Read Apple DESIGN.md + tokens.css (39KB total).
+- Wrote new `globals.css` with Apple design tokens as CSS custom properties:
+  - Surface ladder: --background #ffffff, --surface-apple #f5f5f7, --surface-warm #fbfbfd
+  - 4-stop neutral ramp: --foreground #1d1d1f → --foreground-2 #424245 → --muted #6e6e73 → --meta #86868b
+  - Single accent: --accent #0071e3 (Apple Action Blue), --accent-hover #0077ed, --accent-active #0066cc
+  - SF Pro typography stack with Helvetica Neue fallback
+  - Tiered radius: 8/12/18/980px (capsule CTA)
+  - Restrained elevation: flat / ring / raised (3 levels only)
+  - Apple focus halo: 4px blue glow ring
+  - Motion: cubic-bezier(0.28, 0, 0.22, 1), 220ms base
+  - Dark mode tokens (surface-black base + on-dark blue accent #2997ff)
+  - Utility classes: .btn-pill (capsule), .btn-pill-secondary, .eyebrow, .band-light/soft/warm, .card-apple, .field-apple, .tracking-display, .tracking-body, .bg-surface-apple, .text-meta, .elev-ring, .elev-raised, .transition-apple, .focus-halo, .scrollbar-apple
+- Updated layout.tsx to load Inter (closest Google Fonts substitute for SF Pro Text) + JetBrains Mono via next/font/google.
+- Redesigned RevKitLogo: solid blue tile (#0071e3) + 14px radius + white meta-analysis diamond + 2 study circle markers + whisper-thin null-effect line. No decorative gradients.
+- Dispatched 3 parallel subagents to apply Apple styling:
+  - A-3 welcome-screen.tsx: Apple billboard hero, 3-tile action row with hover shadow, spec strip, Apple-style saved-reviews cards with hover-only delete button. Replaced 6 emerald classes with Apple Action Blue.
+  - A-4 workspace-shell.tsx: Frosted-glass top bar (`bg-background/80 backdrop-blur-xl`), warm sidebar (`bg-surface-warm`), Apple-blue capsule Save button, segmented phase stepper, Apple KPI tiles.
+  - A-5 new-review-wizard.tsx: Apple modal (rounded-18px + elev-raised shadow), eyebrow + display title header, custom progress bar with Apple-blue fill, sr-only radio + Apple-style icon tiles as selection affordance, Apple-style field-apple inputs, .btn-pill capsule CTAs, framer-motion transitions using Apple's cubic-bezier(0.28, 0, 0.22, 1).
+- Fixed 3 pre-existing TS errors: settings-page.tsx missing Review type import; state.ts null check; route.ts RobJudgement type cast.
+
+Stage Summary:
+- All 3 redesigned files pass lint + tsc cleanly.
+- Verified with agent-browser:
+  - Welcome page loads with Apple hero + 3 action tiles + spec strip + saved reviews.
+  - Workspace loads with frosted-glass toolbar + warm sidebar + Apple-blue phase stepper + KPI tiles.
+  - Forest plot still computes correctly (OR 0.88 [0.77, 1.01], I²=69%, Z=-1.86, P=0.063 — matches R output).
+  - Wizard loads with Apple eyebrow + display title + step indicator + radio cards.
+- All emerald accents replaced with Apple Action Blue (#0071e3).
+- All headings now use font-display + tracking-display (tight -0.015em letter-spacing).
+- All inputs use .field-apple (border-led + 4px blue focus halo).
+- All CTAs use .btn-pill (Apple's signature 980px-radius capsule).

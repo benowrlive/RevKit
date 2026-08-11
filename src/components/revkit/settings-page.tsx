@@ -29,7 +29,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useReviewStore } from "@/lib/project/state";
-import { REVIEW_TYPES, type ReviewPhase, REVIEW_PHASES } from "@/lib/types";
+import { REVIEW_TYPES, type ReviewPhase, REVIEW_PHASES, type Review } from "@/lib/types";
 import { loadRecentFiles, removeRecentFile } from "@/lib/project/id";
 import { useState } from "react";
 import { toast } from "sonner";
