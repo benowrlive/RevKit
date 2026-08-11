@@ -226,7 +226,3 @@ export function initialsFrom(member: { name: string; initials?: string } | null 
   if (member.initials && member.initials.length > 0) return member.initials.toUpperCase();
   return initialsFromName(member.name);
 }
-
-export function colorFrom(member: { color?: string } | null | undefined): string {
-  return member?.color ?? "#14b8a6";
-}

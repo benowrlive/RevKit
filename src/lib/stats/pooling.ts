@@ -328,7 +328,7 @@ export function mantelHaenszelRR(studies: DichotomousStudy[]): PooledEffect {
   let sum2 = 0; // Σ (a·(n1−c) + c·(n1−a))/N
   const contributions: number[] = [];
   for (const s of corrected) {
-    const { a, b, c, d, n1, n2 } = s;
+    const { a, c, n1, n2 } = s;
     const N = n1 + n2;
     const R = (a * n2) / N;
     const S = (c * n1) / N;

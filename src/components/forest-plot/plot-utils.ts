@@ -95,8 +95,8 @@ export function snapLogRange(
   const hi = Math.log(maxVal);
   // Pad outward by ~15% of the log-range.
   const pad = (hi - lo) * 0.15 || Math.log(2) * 2;
-  let paddedLo = lo - pad;
-  let paddedHi = hi + pad;
+  const paddedLo = lo - pad;
+  const paddedHi = hi + pad;
   // Snap to nearest power of 2 outside the padded range.
   let snapLo = Math.floor(paddedLo / Math.log(2)) * Math.log(2);
   let snapHi = Math.ceil(paddedHi / Math.log(2)) * Math.log(2);

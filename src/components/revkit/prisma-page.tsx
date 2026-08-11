@@ -23,14 +23,13 @@ import {
   Download,
   Image as ImageIcon,
   Maximize2,
-  RefreshCw,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useReviewStore } from "@/lib/project/state";
-import type { PrismaFlowBox, Review } from "@/lib/types";
+import type { PrismaFlowBox } from "@/lib/types";
 import {
   PRISMA_TEMPLATE,
   computePrismaCountsFromReview,
@@ -132,7 +131,7 @@ const STAGE_COLORS: Record<
   identification: { fill: "#f1f5f9", stroke: "#475569", text: "#0f172a", band: "#f8fafc" },
   screening: { fill: "#dbeafe", stroke: "#1d4ed8", text: "#1e3a8a", band: "#eff6ff" },
   eligibility: { fill: "#fef3c7", stroke: "#b45309", text: "#78350f", band: "#fffbeb" },
-  included: { fill: "#d1fae5", stroke: "#047857", text: "#064e3b", band: "#ecfdf5" },
+  included: { fill: "color-mix(in oklab, #14b8a6, transparent 88%)", stroke: "#0f766e", text: "#134e4a", band: "color-mix(in oklab, #14b8a6, transparent 95%)" },
 };
 
 // ---------------------------------------------------------------------------
@@ -292,7 +291,7 @@ function PrismaBox({ boxId, count, auto, onEdit }: BoxProps) {
           cx={layout.x + BOX_W - 8}
           cy={layout.y + 8}
           r={4}
-          fill="#10b981"
+          fill="#14b8a6"
         >
           <title>Auto-count from review state</title>
         </circle>
@@ -445,7 +444,7 @@ function StageLegend() {
       <div className="flex items-center gap-1.5">
         <span
           className="inline-block w-2.5 h-2.5 rounded-full"
-          style={{ background: "#10b981" }}
+          style={{ background: "#14b8a6" }}
         />
         <span className="text-xs text-muted-foreground">Auto-count</span>
       </div>
@@ -487,7 +486,7 @@ function CountsTable({ boxes }: { boxes: PrismaFlowBox[] }) {
                     variant={auto ? "secondary" : "outline"}
                     className={
                       auto
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                        ? "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200"
                         : ""
                     }
                   >
@@ -592,7 +591,7 @@ function EditBoxDialog({ boxId, onClose }: EditDialogProps) {
                 />
                 <Badge
                   variant="secondary"
-                  className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                  className="bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200"
                 >
                   auto
                 </Badge>
@@ -619,7 +618,7 @@ function EditBoxDialog({ boxId, onClose }: EditDialogProps) {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700 text-white">
             Save
           </Button>
         </DialogFooter>

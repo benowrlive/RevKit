@@ -219,7 +219,7 @@ function DtaCalculatorBody({
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <Calculator className="size-5 text-emerald-600" />
+          <Calculator className="size-5 text-teal-600" />
           DTA Calculator (2×2 table)
         </DialogTitle>
         <DialogDescription>
@@ -341,7 +341,7 @@ function DtaCalculatorBody({
         <Button variant="ghost" size="sm" onClick={onClose}>
           Cancel
         </Button>
-        <Button size="sm" onClick={handleOk} disabled={!valid} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button size="sm" onClick={handleOk} disabled={!valid} className="bg-teal-600 hover:bg-teal-700 text-white">
           OK
         </Button>
       </DialogFooter>
@@ -376,7 +376,7 @@ function CellInput({
         <span
           className={cn(
             "absolute left-2 top-1/2 -translate-y-1/2 text-xs font-semibold",
-            invalid ? "text-rose-500" : "text-emerald-600",
+            invalid ? "text-rose-500" : "text-teal-600",
           )}
         >
           {label}
@@ -415,7 +415,7 @@ function ReadoutCell({
         className={cn(
           "h-9 flex items-center justify-center rounded-md border tabular-nums text-sm font-medium",
           highlight
-            ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-800 dark:text-emerald-200"
+            ? "bg-teal-50 dark:bg-teal-950 border-teal-300 text-teal-800 dark:text-teal-200"
             : "bg-muted/50 border-border text-foreground",
         )}
       >

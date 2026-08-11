@@ -71,7 +71,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Decision = "INCLUDE" | "EXCLUDE" | "MAYBE" | null;
 
 interface ParsedRisRecord {
   title: string;
@@ -85,7 +84,7 @@ interface ParsedRisRecord {
 function decisionBadgeClass(decision: string | null | undefined): string {
   switch (decision) {
     case "INCLUDE":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-200 dark:border-emerald-900";
+      return "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200 border-teal-200 dark:border-teal-900";
     case "EXCLUDE":
       return "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 border-rose-200 dark:border-rose-900";
     case "MAYBE":
@@ -409,13 +408,13 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
                 isDragging
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                  : "border-muted-foreground/30 hover:border-emerald-400 hover:bg-muted/40"
+                  ? "border-teal-500 bg-teal-50 dark:bg-teal-950/30"
+                  : "border-muted-foreground/30 hover:border-teal-400 hover:bg-muted/40"
               }`}
             >
               <FileUp className="size-6 mx-auto text-muted-foreground" />
               <p className="text-sm mt-1.5">
-                <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                <span className="text-teal-700 dark:text-teal-400 font-medium">
                   Click to upload
                 </span>{" "}
                 or drag &amp; drop a .ris file
@@ -456,11 +455,11 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
             )}
 
             {parsed && parsed.length > 0 && (
-              <Card className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <Card className="p-3 bg-teal-50/50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-900">
                 <div className="flex items-start gap-2">
-                  <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <Check className="size-4 text-teal-600 shrink-0 mt-0.5" />
                   <div className="text-xs">
-                    <p className="font-medium text-emerald-900 dark:text-emerald-100">
+                    <p className="font-medium text-teal-900 dark:text-teal-100">
                       Parsed {parsed.length} record{parsed.length === 1 ? "" : "s"}.
                     </p>
                     <p className="text-muted-foreground">
@@ -483,7 +482,7 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
               <Button
                 onClick={handleConfirmImport}
                 disabled={!parsed || parsed.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-teal-600 hover:bg-teal-700 text-white"
               >
                 <Check className="size-4" />
                 Import {parsed ? parsed.length : 0} record{!parsed || parsed.length === 1 ? "" : "s"}
@@ -552,7 +551,7 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   <Plus className="size-4" />
                   Add reference
@@ -646,7 +645,7 @@ export function ReferencesPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="size-6 text-emerald-600" />
+            <FileText className="size-6 text-teal-600" />
             References
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -657,7 +656,7 @@ export function ReferencesPage() {
           <Badge variant="secondary" className="h-7 px-2.5">
             {references.length} {references.length === 1 ? "reference" : "references"}
           </Badge>
-          <Button onClick={() => setImportOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={() => setImportOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
             <Upload className="size-4" />
             Import references
           </Button>
@@ -685,8 +684,8 @@ export function ReferencesPage() {
       {references.length === 0 ? (
         <Card className="p-10 text-center border-dashed bg-muted/20">
           <div className="mx-auto max-w-md space-y-3">
-            <div className="mx-auto size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-              <FileText className="size-6 text-emerald-600" />
+            <div className="mx-auto size-12 rounded-full bg-teal-100 dark:bg-teal-950 flex items-center justify-center">
+              <FileText className="size-6 text-teal-600" />
             </div>
             <h3 className="text-lg font-semibold">No references yet</h3>
             <p className="text-sm text-muted-foreground">
@@ -694,7 +693,7 @@ export function ReferencesPage() {
               or add a single reference manually.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-              <Button onClick={() => setImportOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button onClick={() => setImportOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
                 <Upload className="size-4" />
                 Import references
               </Button>
@@ -742,7 +741,7 @@ export function ReferencesPage() {
                           href={`https://doi.org/${ref.doi}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
+                          className="text-xs text-teal-700 dark:text-teal-400 hover:underline"
                         >
                           doi:{ref.doi}
                         </a>
@@ -782,7 +781,7 @@ export function ReferencesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="min-w-[180px]">
                         <DropdownMenuItem onClick={() => handleInclude(ref)}>
-                          <Check className="size-4 text-emerald-600" />
+                          <Check className="size-4 text-teal-600" />
                           Include
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleMaybe(ref)}>
@@ -820,7 +819,7 @@ export function ReferencesPage() {
       {references.length > 0 && (
         <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
           <span>
-            <Check className="size-3 inline mr-1 text-emerald-600" />
+            <Check className="size-3 inline mr-1 text-teal-600" />
             {counts.included} included
           </span>
           <span>

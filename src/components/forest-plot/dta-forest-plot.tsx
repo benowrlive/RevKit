@@ -42,7 +42,6 @@ export interface DtaForestPlotProps {
 
 const SVG_WIDTH = 1080;
 const ROW_HEIGHT = 26;
-const PANEL_WIDTH = 540;
 const LEFT_PANEL_X = 0;
 const RIGHT_PANEL_X = 540;
 const PLOT_LEFT_OFFSET = 180;

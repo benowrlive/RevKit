@@ -8,15 +8,30 @@ const __dirname = dirname(__filename);
 
 const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
   rules: {
-    // TypeScript rules
+    // ─── TypeScript rules ─────────────────────────────────────────
+    // Re-enabled (P1 cleanup pass):
+    "@typescript-eslint/no-unused-vars": ["warn", {
+      argsIgnorePattern: "^_",
+      varsIgnorePattern: "^_",
+      caughtErrorsIgnorePattern: "^_",
+    }],
+    "prefer-const": "warn",
+    "no-console": ["warn", { allow: ["warn", "error"] }],
+    "no-debugger": "error",
+    "no-unreachable": "error",
+    "no-useless-escape": "warn",
+
+    // Still off — needs deeper refactors before enabling:
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-as-const": "off",
     "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
+
+    // ─── React rules ──────────────────────────────────────────────
+    // Still off — these rules don't fit the current state-management
+    // patterns (Zustand store + Radix UI). Re-enabling requires real
+    // refactors. Documented as tech debt.
     "react-hooks/exhaustive-deps": "off",
     "react-hooks/purity": "off",
     "react-hooks/set-state-in-effect": "off",
@@ -24,16 +39,13 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "react/display-name": "off",
     "react/prop-types": "off",
     "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
+
+    // ─── Next.js rules ────────────────────────────────────────────
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
-    
-    // General JavaScript rules
-    "prefer-const": "off",
-    "no-unused-vars": "off",
-    "no-console": "off",
-    "no-debugger": "off",
+
+    // ─── General JavaScript rules still off (low value) ────────────
+    "no-unused-vars": "off", // covered by @typescript-eslint/no-unused-vars
     "no-empty": "off",
     "no-irregular-whitespace": "off",
     "no-case-declarations": "off",
@@ -41,11 +53,18 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-mixed-spaces-and-tabs": "off",
     "no-redeclare": "off",
     "no-undef": "off",
-    "no-unreachable": "off",
-    "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  ignores: [
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "examples/**",
+    "skills/**",
+    "tests/**",
+  ],
 }];
 
 export default eslintConfig;

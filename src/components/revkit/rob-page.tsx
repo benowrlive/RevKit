@@ -223,7 +223,7 @@ function AnswerPicker({
             className={cn(
               "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors",
               isActive
-                ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-100 font-medium"
+                ? "border-teal-500 bg-teal-50 text-teal-900 dark:bg-teal-950/60 dark:text-teal-100 font-medium"
                 : "border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
@@ -372,7 +372,7 @@ function RobEditorForm({
     <>
       <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
         <DialogTitle className="flex items-center gap-2 text-base pr-8">
-          <ShieldCheck className="size-5 text-emerald-600 shrink-0" />
+          <ShieldCheck className="size-5 text-teal-600 shrink-0" />
           <span className="truncate">Risk of Bias: {study.label}</span>
           <span className="text-muted-foreground font-normal text-sm shrink-0">— {shortName}</span>
         </DialogTitle>
@@ -531,7 +531,7 @@ function RobEditorForm({
         </Button>
         <Button
           onClick={handleSave}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-teal-600 hover:bg-teal-700 text-white"
         >
           <Check className="size-4" />
           Save assessment
@@ -1095,7 +1095,7 @@ export function RobPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ShieldCheck className="size-6 text-emerald-600" />
+            <ShieldCheck className="size-6 text-teal-600" />
             Risk of Bias
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -1127,8 +1127,8 @@ export function RobPage() {
       {studies.length === 0 ? (
         <Card className="p-10 text-center border-dashed bg-muted/20">
           <div className="mx-auto max-w-md space-y-3">
-            <div className="mx-auto size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-              <FileText className="size-6 text-emerald-600" />
+            <div className="mx-auto size-12 rounded-full bg-teal-100 dark:bg-teal-950 flex items-center justify-center">
+              <FileText className="size-6 text-teal-600" />
             </div>
             <h3 className="text-lg font-semibold">No studies yet</h3>
             <p className="text-sm text-muted-foreground">

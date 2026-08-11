@@ -72,6 +72,7 @@ import { DataGrid } from "@/components/data-entry/data-grid";
 import { ForestPlot } from "@/components/forest-plot/forest-plot";
 import { FunnelPlot } from "@/components/forest-plot/funnel-plot";
 import { SrocPlot } from "@/components/forest-plot/sroc-plot";
+import { DtaForestPlot } from "@/components/forest-plot/dta-forest-plot";
 
 // --- Defaults & option matrix per dataType -----------------------------------
 
@@ -298,7 +299,7 @@ export function ComparisonsPage() {
         <Card className="p-3 lg:sticky lg:top-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
-              <FolderTree className="size-4 text-emerald-600" />
+              <FolderTree className="size-4 text-teal-600" />
               Comparisons
             </h3>
           </div>
@@ -318,7 +319,7 @@ export function ComparisonsPage() {
             <Button
               size="icon"
               variant="default"
-              className="h-8 w-8 bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+              className="h-8 w-8 bg-teal-600 hover:bg-teal-700 text-white shrink-0"
               onClick={handleAddComparison}
               title="Add comparison"
             >
@@ -599,7 +600,7 @@ function ComparisonNode(props: ComparisonNodeProps) {
         ) : (
           <button
             onClick={onToggleExpand}
-            className="flex-1 text-left text-sm font-medium truncate hover:text-emerald-700"
+            className="flex-1 text-left text-sm font-medium truncate hover:text-teal-700"
             title={c.name}
           >
             {c.name}
@@ -615,7 +616,7 @@ function ComparisonNode(props: ComparisonNodeProps) {
               icon={Plus}
               title="Add outcome"
               onClick={onAddOutcome}
-              className="text-emerald-700"
+              className="text-teal-700"
             />
             <IconBtn
               icon={Pencil}
@@ -723,7 +724,7 @@ function OutcomeNode(props: OutcomeNodeProps) {
         className={cn(
           "flex items-center gap-1 rounded px-1.5 py-1 cursor-pointer",
           isSelected
-            ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100"
+            ? "bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-100"
             : "hover:bg-muted",
         )}
         onClick={onSelect}
@@ -743,7 +744,7 @@ function OutcomeNode(props: OutcomeNodeProps) {
               e.stopPropagation();
               onStartAddSubgroup();
             }}
-            className="text-emerald-700"
+            className="text-teal-700"
           />
           <IconBtn
             icon={Pencil}
@@ -912,7 +913,7 @@ function OutcomeDetail(props: OutcomeDetailProps) {
                 "text-xs capitalize",
                 outcome.model === "random"
                   ? "border-amber-300 text-amber-700"
-                  : "border-emerald-300 text-emerald-700",
+                  : "border-teal-300 text-teal-700",
               )}
             >
               {outcome.model === "random" ? "Random" : "Fixed"}
@@ -938,7 +939,9 @@ function OutcomeDetail(props: OutcomeDetailProps) {
       <Tabs defaultValue="data" className="w-full">
         <TabsList>
           <TabsTrigger value="data">Data Entry</TabsTrigger>
-          <TabsTrigger value="forest">Forest Plot</TabsTrigger>
+          <TabsTrigger value="forest">
+            {isDta ? "DTA Forest" : "Forest Plot"}
+          </TabsTrigger>
           <TabsTrigger value="funnel">
             {isDta ? "SROC Plot" : "Funnel Plot"}
           </TabsTrigger>
@@ -958,7 +961,7 @@ function OutcomeDetail(props: OutcomeDetailProps) {
         </TabsContent>
 
         <TabsContent value="forest" className="mt-3">
-          <ForestPlot outcome={outcome} />
+          {isDta ? <DtaForestPlot outcome={outcome} /> : <ForestPlot outcome={outcome} />}
         </TabsContent>
 
         <TabsContent value="funnel" className="mt-3">
@@ -1053,7 +1056,7 @@ function SubgroupsTab(props: SubgroupsTabProps) {
               if (e.key === "Escape") onCancelAddSubgroup();
             }}
           />
-          <Button size="sm" onClick={onCommitAddSubgroup} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button size="sm" onClick={onCommitAddSubgroup} className="bg-teal-600 hover:bg-teal-700 text-white">
             Add
           </Button>
           <Button size="sm" variant="ghost" onClick={onCancelAddSubgroup}>
@@ -1335,7 +1338,7 @@ function OutcomeFormDialog({
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             {mode === "add" ? "Add outcome" : "Save changes"}
           </Button>
@@ -1350,8 +1353,8 @@ function OutcomeFormDialog({
 function EmptyDetail({ comparisonsCount }: { comparisonsCount: number }) {
   return (
     <Card className="p-8 flex flex-col items-center justify-center text-center min-h-[320px]">
-      <div className="size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mb-3">
-        <GitCompare className="size-6 text-emerald-600" />
+      <div className="size-12 rounded-full bg-teal-100 dark:bg-teal-950 flex items-center justify-center mb-3">
+        <GitCompare className="size-6 text-teal-600" />
       </div>
       <h3 className="text-base font-semibold">No outcome selected</h3>
       <p className="text-sm text-muted-foreground mt-1 max-w-sm">

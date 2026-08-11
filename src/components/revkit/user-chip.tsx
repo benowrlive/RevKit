@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useTeamStore, initialsFrom, colorFrom } from "@/lib/team/store";
+import { useTeamStore, initialsFrom } from "@/lib/team/store";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { UserCircle } from "@phosphor-icons/react";
 

@@ -88,7 +88,7 @@ const EMPTY_FORM: StudyFormState = {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case "included":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-200 dark:border-emerald-900";
+      return "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200 border-teal-200 dark:border-teal-900";
     case "excluded":
       return "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 border-rose-200 dark:border-rose-900";
     case "pending":
@@ -357,7 +357,7 @@ function StudyFormDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white">
               {isEdit ? "Save changes" : "Add study"}
             </Button>
           </DialogFooter>
@@ -407,7 +407,7 @@ export function StudiesPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="size-6 text-emerald-600" />
+            <Users className="size-6 text-teal-600" />
             Studies
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -418,7 +418,7 @@ export function StudiesPage() {
           <Badge variant="secondary" className="h-7 px-2.5">
             {studies.length} {studies.length === 1 ? "study" : "studies"}
           </Badge>
-          <Button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={openAdd} className="bg-teal-600 hover:bg-teal-700 text-white">
             <Plus className="size-4" />
             Add study
           </Button>
@@ -429,8 +429,8 @@ export function StudiesPage() {
       {studies.length === 0 ? (
         <Card className="p-10 text-center border-dashed bg-muted/20">
           <div className="mx-auto max-w-md space-y-3">
-            <div className="mx-auto size-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-              <FileText className="size-6 text-emerald-600" />
+            <div className="mx-auto size-12 rounded-full bg-teal-100 dark:bg-teal-950 flex items-center justify-center">
+              <FileText className="size-6 text-teal-600" />
             </div>
             <h3 className="text-lg font-semibold">No studies yet</h3>
             <p className="text-sm text-muted-foreground">
@@ -438,7 +438,7 @@ export function StudiesPage() {
               References page once you&apos;ve completed title/abstract screening.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-              <Button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button onClick={openAdd} className="bg-teal-600 hover:bg-teal-700 text-white">
                 <Plus className="size-4" />
                 Add study
               </Button>
@@ -494,7 +494,7 @@ export function StudiesPage() {
                         href={doiUrl(study.doi)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
+                        className="inline-flex items-center gap-1 text-xs text-teal-700 dark:text-teal-400 hover:underline"
                         title={study.doi}
                       >
                         {truncate(study.doi, 24)}

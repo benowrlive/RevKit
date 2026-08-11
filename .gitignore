@@ -50,5 +50,18 @@ test
 prompt
 
 server.log
-# Skills directory
+# Skills directory (external knowledge packs, not RevKit source)
 /skills/
+
+# Local SQLite database (user data, not source)
+/db/*.db
+/db/*.db-journal
+
+# Tool results / scratch
+/tool-results/
+/upload/
+/download/
+/.zscripts/
+
+# Worklog is project-internal — keep it committed but ignore backups
+worklog.md.bak

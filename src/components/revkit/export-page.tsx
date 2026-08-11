@@ -190,8 +190,8 @@ function CsvCard({ review }: { review: Review }) {
 
   return (
     <ExportCard
-      icon={<Table2 className="size-5 text-emerald-700" />}
-      iconBg="#d1fae5"
+      icon={<Table2 className="size-5 text-teal-700" />}
+      iconBg="color-mix(in oklab, #14b8a6, transparent 88%)"
       title="CSV (combined)"
       description="A single CSV file with section headers for studies, references, data points, risk-of-bias assessments, and the PRISMA flow as JSON. Opens in Excel / Numbers / Google Sheets."
       footer={
@@ -214,7 +214,7 @@ function CsvCard({ review }: { review: Review }) {
         <Button
           onClick={handleExport}
           disabled={busy}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="w-full bg-teal-600 hover:bg-teal-700 text-white"
         >
           {busy ? (
             <Loader2 className="size-4 animate-spin" />

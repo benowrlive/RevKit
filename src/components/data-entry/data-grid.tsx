@@ -409,7 +409,7 @@ function AddRowForm({
         <Button
           size="icon"
           variant="ghost"
-          className="h-7 w-7 text-emerald-700"
+          className="h-7 w-7 text-teal-700"
           onClick={() => {
             onAdd(addStudyId);
             setAddStudyId("");
