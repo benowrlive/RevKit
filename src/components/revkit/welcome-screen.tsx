@@ -155,17 +155,16 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         </div>
       </header>
 
-      {/* ── Hero — compact, py-10 (40px top/bottom) ──────────────────────── */}
-      <section className="px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mx-auto max-w-5xl enter-pop">
-          <div className="eyebrow mb-3">Open-Source · Cochrane-Style</div>
-          <h1 className="text-2xl font-semibold tracking-display leading-tight">
-            Build systematic reviews with rigor.
-          </h1>
-          <p className="mt-2 max-w-[640px] text-sm text-muted-fg leading-relaxed">
-            All five review types. Meta-analysis, RoB, PRISMA flow, exports. Free.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+      {/* ── Hero — logo as the hero element ────────────────────────────────
+         The RevKit logo says it all: "Systematic Reviews · Meta-Analysis ·
+         Evidence Synthesis" + "Better Evidence. Better Decisions." No need
+         for duplicate text. The logo fills the hero space, buttons below. */}
+      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mx-auto max-w-5xl enter-pop flex flex-col items-center text-center">
+          {/* Large hero logo — fills the space the eyebrow/H1/paragraph used to */}
+          <RevKitLogo className="w-full max-w-md sm:max-w-lg h-auto" />
+          {/* Two CTAs directly below the logo */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
