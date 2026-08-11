@@ -11,6 +11,7 @@ import { PrismaPage } from "@/components/revkit/prisma-page";
 import { ExportPage } from "@/components/revkit/export-page";
 import { SettingsPage } from "@/components/revkit/settings-page";
 import { useReviewStore } from "@/lib/project/state";
+import { useTeamStore } from "@/lib/team/store";
 import type { ReviewType, ReviewSubType } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -22,6 +23,35 @@ export default function Home() {
   const review = useReviewStore((s) => s.review);
   const setReview = useReviewStore((s) => s.setReview);
   const newReviewAction = useReviewStore((s) => s.newReview);
+
+  // Load team + profile on first mount.
+  const setMembers = useTeamStore((s) => s.setMembers);
+  const setProfile = useTeamStore((s) => s.setProfile);
+  const setLoading = useTeamStore((s) => s.setLoading);
+  useEffect(() => {
+    let cancelled = false;
+    const ctrl = new AbortController();
+    setLoading(true);
+    Promise.all([
+      fetch("/api/team", { signal: ctrl.signal }).then((r) => r.json()),
+      fetch("/api/team/profile", { signal: ctrl.signal }).then((r) => r.json()),
+    ])
+      .then(([teamData, profileData]) => {
+        if (cancelled) return;
+        setMembers(teamData.members ?? []);
+        setProfile(profileData.profile ?? null);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (ctrl.signal.aborted || cancelled) return;
+        setLoading(false);
+        console.error("Failed to load team/profile", err);
+      });
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
+  }, [setMembers, setProfile, setLoading]);
 
   async function handleNew(input: {
     title: string;
@@ -63,14 +93,13 @@ export default function Home() {
     useReviewStore.setState({ dbId: null });
   }
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — ⌘S to save
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (view !== "workspace") return;
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key === "s") {
         e.preventDefault();
-        // Find and click save button
         const btn = document.querySelector<HTMLButtonElement>("[data-save-btn]");
         btn?.click();
       }

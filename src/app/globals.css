@@ -4,18 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ─────────────────────────────────────────────────────────────────────
- * RevKit × Apple Design System
+ * RevKit Design System v2 — Compact · Teal · Dark-first
  *
- * Tokens sourced verbatim from skills/design/design-systems/brand-inspiration/
- * apple/tokens.css — a precision editorial language built around:
+ * Style: Linear/Vercel refinement + bento-dashboard density.
+ *   - 13-14px body text, 8px radius, 6-10px component padding
+ *   - Compact data tables (32px rows, mono numerics)
+ *   - One accent color: teal #0d9488 (with #14b8a6 hover, #0f766e active)
+ *   - Dark-mode default; light mode as a switched alternative
+ *   - Inter for UI, JetBrains Mono for numerics
  *
- *   - SF Pro Display / SF Pro Text typography (17px body baseline)
- *   - Apple Action Blue (#0071e3) as the single accent color
- *   - 4-stop neutral ramp: #1d1d1f → #424245 → #6e6e73 → #86868b
- *   - Tiered radius: 8 / 12 / 18 / 980px (capsule CTA)
- *   - Restrained elevation: flat / ring / raised (no fourth level)
- *   - Motion: cubic-bezier(0.28, 0, 0.22, 1), 220ms base
- *   - Focus halo: 4px blue glow ring
+ * Replaces the previous Apple-inspired (overly airy) system.
  * ─────────────────────────────────────────────────────────────────── */
 
 @theme inline {
@@ -52,194 +50,196 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
-  --radius-pill: 980px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 }
 
+/* ─── DARK MODE (default) ──────────────────────────────────────────
+ * Linear/Vercel dark theme: deep neutral background, slightly lifted
+ * surfaces, hairline borders, restrained teal accent.
+ * Inspired by Vercel Dashboard + Linear app. */
 :root {
-  /* ─── Apple surface ladder (3 levels) ─── */
-  --background: #ffffff;
-  --surface-apple: #f5f5f7;
-  --surface-warm: #fbfbfd;
+  /* Surfaces — 3 tiers */
+  --background: #0a0a0b;          /* near-black, not pure black */
+  --surface: #131316;             /* card / panel */
+  --surface-raised: #1a1a1f;       /* popover, dropdown */
+  --surface-hover: #1f1f24;        /* hover state */
 
-  /* ─── Foreground ramp (4 levels, no pure black on white) ─── */
-  --foreground: #1d1d1f;
-  --foreground-2: #424245;
-  --muted: #6e6e73;
-  --meta: #86868b;
+  /* Foreground ramp — 4 stops */
+  --foreground: #fafafa;          /* primary text */
+  --foreground-2: #d4d4d8;        /* secondary text */
+  --muted-foreground: #71717a;    /* tertiary, labels */
+  --meta: #52525b;                /* fine print */
 
-  /* ─── Border ladder ─── */
-  --border: #d2d2d7;
-  --border-soft: #e8e8ed;
-  --input: #d2d2d7;
-  --ring: #0071e3;
+  /* Borders — 2 stops */
+  --border: #27272a;
+  --border-soft: #1f1f23;
+  --input: #27272a;
+  --ring: #14b8a6;
 
-  /* ─── Apple Action Blue (single accent) ─── */
-  --primary: #0071e3;
-  --primary-foreground: #ffffff;
-  --accent: #0071e3;
-  --accent-foreground: #ffffff;
+  /* Accent — Teal */
+  --primary: #0d9488;
+  --primary-foreground: #f0fdfa;
+  --accent: #14b8a6;
+  --accent-foreground: #f0fdfa;
+  --accent-hover: #2dd4bf;
+  --accent-active: #0f766e;
+  --accent-subtle: rgba(20, 184, 166, 0.12);  /* subtle bg tint */
 
-  /* Apple secondary surfaces */
-  --secondary: #f5f5f7;
-  --secondary-foreground: #1d1d1f;
+  /* Secondary surfaces */
+  --secondary: #1a1a1f;
+  --secondary-foreground: #fafafa;
 
-  --card: #ffffff;
-  --card-foreground: #1d1d1f;
-  --popover: #ffffff;
-  --popover-foreground: #1d1d1f;
+  --card: #131316;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1f;
+  --popover-foreground: #fafafa;
 
-  --muted-foreground: #6e6e73;
+  --muted: #1a1a1f;
 
-  /* Accent states — Apple buttons lighten on hover, darken on press */
-  --accent-hover: #0077ed;
-  --accent-active: #0066cc;
-  --accent-on-dark: #2997ff;
+  /* Semantic — restrained (under 5% surface area) */
+  --destructive: #f43f5e;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --info: #3b82f6;
 
-  /* Semantic — Apple keeps these restrained (under 5% surface area) */
-  --destructive: #dc2626;
+  /* Chart palette — teal-anchored 5-stop */
+  --chart-1: #14b8a6;   /* teal */
+  --chart-2: #6366f1;   /* indigo */
+  --chart-3: #f59e0b;   /* amber */
+  --chart-4: #ec4899;   /* pink */
+  --chart-5: #84cc16;   /* lime */
 
-  /* Chart palette — Apple-aligned neutrals + the blue accent */
-  --chart-1: #0071e3;
-  --chart-2: #6e6e73;
-  --chart-3: #86868b;
-  --chart-4: #afb0b4;
-  --chart-5: #d2d2d7;
+  /* Sidebar — slightly darker than main */
+  --sidebar: #0d0d0f;
+  --sidebar-foreground: #d4d4d8;
+  --sidebar-primary: #14b8a6;
+  --sidebar-primary-foreground: #f0fdfa;
+  --sidebar-accent: #1a1a1f;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #1f1f23;
+  --sidebar-ring: #14b8a6;
 
-  /* Sidebar — Apple's signature warm sidebar tint */
-  --sidebar: #fbfbfd;
-  --sidebar-foreground: #1d1d1f;
-  --sidebar-primary: #0071e3;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f5f5f7;
-  --sidebar-accent-foreground: #1d1d1f;
-  --sidebar-border: #d2d2d7;
-  --sidebar-ring: #0071e3;
+  /* Typography — Inter UI + JetBrains Mono numerics */
+  --font-display: "Inter", var(--font-geist-sans), system-ui, sans-serif;
+  --font-body: "Inter", var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", var(--font-geist-mono), ui-monospace, Menlo, monospace;
 
-  /* Typography — SF Pro stack with Helvetica Neue fallback */
-  --font-display:
-    "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial,
-    var(--font-geist-sans), sans-serif;
-  --font-body:
-    "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial,
-    var(--font-geist-sans), sans-serif;
-  --font-mono:
-    "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Monaco, Consolas,
-    var(--font-geist-mono), monospace;
+  /* Type scale (px) — compact */
+  --text-xs: 11px;       /* fine print, eyebrow labels */
+  --text-sm: 12px;       /* secondary labels, badges */
+  --text-base: 13px;     /* body, table cells */
+  --text-md: 14px;       /* primary labels, button text */
+  --text-lg: 16px;       /* section headings */
+  --text-xl: 20px;       /* page titles */
+  --text-2xl: 26px;      /* hero headings */
+  --text-3xl: 36px;      /* big numerics (KPI) */
 
-  /* Apple type scale (px) */
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-base: 17px;
-  --text-lg: 21px;
-  --text-xl: 28px;
-  --text-2xl: 40px;
-  --text-3xl: 56px;
-  --text-4xl: 80px;
+  /* Leading */
+  --leading-tight: 1.15;
+  --leading-body: 1.45;
 
-  /* Apple leading / tracking */
-  --leading-body: 1.47;
-  --leading-tight: 1.05;
-  --tracking-display: -0.015em;
+  /* Tracking — Inter is well-designed at 0; tighter on display */
+  --tracking-display: -0.011em;
+  --tracking-body: 0;
 
-  /* Spacing (4-8-12-16-20-24-32-48) */
+  /* Spacing — compact (4-6-8-10-12-16-20-24-32) */
   --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-8: 20px;
+  --space-10: 24px;
+  --space-12: 32px;
 
-  /* Radius — 8/12/18 + 980px capsule */
-  --radius: 18px;
+  /* Radius — small + tight */
+  --radius: 8px;
 
-  /* Elevation — flat / ring / raised (no fourth level) */
+  /* Elevation — restrained, surface-contrast-led */
   --elev-flat: none;
   --elev-ring: 0 0 0 1px var(--border);
-  --elev-raised: 0 12px 32px rgba(0, 0, 0, 0.08);
+  --elev-raised: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+  --elev-overlay: 0 8px 32px rgba(0,0,0,0.4);
 
-  /* Focus halo — Apple's signature 4px blue glow */
-  --focus-ring: 0 0 0 4px color-mix(in oklab, var(--accent), transparent 65%);
+  /* Focus ring — teal halo */
+  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px var(--accent);
 
-  /* Motion — Apple decelerate-then-settle curve */
-  --motion-fast: 150ms;
-  --motion-base: 220ms;
-  --ease-standard: cubic-bezier(0.28, 0, 0.22, 1);
+  /* Motion — Linear-style snappy */
+  --motion-fast: 100ms;
+  --motion-base: 160ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Emil Kowalski animation curves — stronger than default CSS easings.
-   * Source: emilkowalski/skills/animate/SKILL.md
-   *   --ease-out     for ENTER animations (dropdowns, popovers, toasts) —
-   *                  starts fast, feels responsive
-   *   --ease-in-out  for ON-SCREEN movement (slides, position changes) —
-   *                  natural acceleration + deceleration
-   *   --ease-drawer  iOS-like drawer curve (from Ionic) — for sheets/drawers
-   *
-   * NEVER use ease-in for UI animations — it starts slow and feels sluggish. */
+  /* Emil Kowalski animation curves — kept from previous layer */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* Container — Apple's readable measure (1024px max) */
-  --container-max: 1024px;
-  --container-gutter-desktop: 22px;
-  --container-gutter-tablet: 18px;
-  --container-gutter-phone: 16px;
+  /* Container */
+  --container-max: 1280px;
+  --container-gutter: 16px;
 }
 
-.dark {
-  /* Apple's dark mode — surface-black base, on-dark blue accent */
-  --background: #000000;
-  --surface-apple: #1d1d1f;
-  --surface-warm: #1d1d1f;
+/* ─── LIGHT MODE (switched via .light class) ─────────────────────── */
+.light {
+  --background: #ffffff;
+  --surface: #fafafa;
+  --surface-raised: #ffffff;
+  --surface-hover: #f4f4f5;
 
-  --foreground: #f5f5f7;
-  --foreground-2: #d2d2d7;
-  --muted: #a1a1a6;
-  --meta: #86868b;
+  --foreground: #18181b;
+  --foreground-2: #3f3f46;
+  --muted-foreground: #71717a;
+  --meta: #a1a1aa;
 
-  --border: #424245;
-  --border-soft: #2c2c2e;
-  --input: #424245;
-  --ring: #2997ff;
+  --border: #e4e4e7;
+  --border-soft: #f4f4f5;
+  --input: #e4e4e7;
+  --ring: #0d9488;
 
-  --primary: #2997ff;
+  --primary: #0d9488;
   --primary-foreground: #ffffff;
-  --accent: #2997ff;
+  --accent: #0d9488;
   --accent-foreground: #ffffff;
-  --accent-hover: #5ab2ff;
-  --accent-active: #0071e3;
+  --accent-hover: #0f766e;
+  --accent-active: #115e59;
+  --accent-subtle: rgba(13, 148, 136, 0.08);
 
-  --secondary: #1d1d1f;
-  --secondary-foreground: #f5f5f7;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
 
-  --card: #1d1d1f;
-  --card-foreground: #f5f5f7;
-  --popover: #1d1d1f;
-  --popover-foreground: #f5f5f7;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
 
-  --muted-foreground: #a1a1a6;
+  --muted: #f4f4f5;
 
-  --destructive: #ff453a;
+  --destructive: #e11d48;
+  --success: #059669;
+  --warning: #d97706;
+  --info: #2563eb;
 
-  --chart-1: #2997ff;
-  --chart-2: #a1a1a6;
-  --chart-3: #86868b;
-  --chart-4: #6e6e73;
-  --chart-5: #424245;
+  --chart-1: #0d9488;
+  --chart-2: #4f46e5;
+  --chart-3: #d97706;
+  --chart-4: #db2777;
+  --chart-5: #65a30d;
 
-  --sidebar: #1d1d1f;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-primary: #2997ff;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #3f3f46;
+  --sidebar-primary: #0d9488;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2c2c2e;
-  --sidebar-accent-foreground: #f5f5f7;
-  --sidebar-border: #424245;
-  --sidebar-ring: #2997ff;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #0d9488;
+
+  --elev-raised: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  --elev-overlay: 0 8px 32px rgba(0,0,0,0.1);
 }
 
 @layer base {
@@ -251,6 +251,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Prevent iOS auto-zoom on focus: keep inputs ≥16px equivalent */
+    font-size: 16px;
   }
 
   body {
@@ -258,259 +260,319 @@
     font-family: var(--font-body);
     font-size: var(--text-base);
     line-height: var(--leading-body);
-    letter-spacing: -0.022em;
-    font-feature-settings: "kern", "liga", "calt";
+    letter-spacing: var(--tracking-body);
+    font-feature-settings: "kern", "liga", "calt", "tnum"; /* tabular nums for tables */
+    background-color: var(--background);
   }
 
-  /* Apple's machined-display feel: tight tracking on headings */
+  /* Headings — Inter, slightly tighter */
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: var(--tracking-display);
     font-weight: 600;
+    line-height: var(--leading-tight);
   }
 
-  /* Apple capsule button — the signature 980px radius CTA */
-  .btn-pill {
+  /* Numeric content — always mono (forest plots, tables, stats) */
+  .font-numeric,
+  table td[data-numeric],
+  .stat-value,
+  .kpi-number {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Custom scrollbar — thin, blends with surface */
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); background-clip: content-box; }
+}
+
+@layer components {
+  /* ─── Compact button — the workhorse CTA ───
+   * 6/10px padding, 8px radius, 12px text. Snappy 100ms transitions. */
+  .btn-compact {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    padding: 12px 22px;
-    border: none;
-    border-radius: var(--radius-pill);
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-weight: 400;
-    font-size: var(--text-base);
+    font-weight: 500;
+    font-size: var(--text-md);
     line-height: 1.2;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.01em;
     cursor: pointer;
     text-decoration: none;
-    background: var(--accent);
-    color: var(--accent-foreground);
     transition:
       background-color var(--motion-fast) var(--ease-standard),
-      transform var(--motion-fast) var(--ease-standard),
-      box-shadow var(--motion-fast) var(--ease-standard);
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-standard);
   }
-  .btn-pill:hover { background: var(--accent-hover); }
-  .btn-pill:active { background: var(--accent-active); transform: scale(0.98); }
-  .btn-pill:focus-visible {
+  .btn-compact:active { transform: scale(0.97); }
+  .btn-compact:focus-visible {
     outline: none;
     box-shadow: var(--focus-ring);
   }
-  .btn-pill:disabled {
-    opacity: 0.4;
+  .btn-compact:disabled {
+    opacity: 0.45;
     cursor: not-allowed;
     transform: none;
   }
 
-  /* Apple secondary pill — transparent with hairline ring */
-  .btn-pill-secondary {
+  /* Primary — teal fill */
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-primary:active:not(:disabled) { background: var(--accent-active); }
+
+  /* Secondary — hairline border, no fill */
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--foreground);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--muted-foreground);
+  }
+
+  /* Ghost — no border, no fill (for nav items) */
+  .btn-ghost {
     background: transparent;
+    color: var(--muted-foreground);
+    border-color: transparent;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--foreground);
+  }
+  .btn-ghost[data-active="true"] {
+    background: var(--accent-subtle);
     color: var(--accent);
-    box-shadow: var(--elev-ring);
-  }
-  .btn-pill-secondary:hover {
-    background: var(--surface-apple);
-    color: var(--accent-hover);
-  }
-  .btn-pill-secondary:active {
-    color: var(--accent-active);
-    transform: scale(0.98);
   }
 
-  /* Apple eyebrow — small uppercase label above hero heads */
-  .eyebrow {
-    font-family: var(--font-display);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    line-height: 1;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  /* Danger — rose */
+  .btn-danger {
+    background: var(--destructive);
+    color: white;
+    border-color: var(--destructive);
   }
+  .btn-danger:hover:not(:disabled) { filter: brightness(1.1); }
 
-  /* Apple surface bands — section transitions via canvas change */
-  .band-light { background: var(--background); color: var(--foreground); }
-  .band-soft  { background: var(--surface-apple); color: var(--foreground); }
-  .band-warm  { background: var(--surface-warm); color: var(--foreground); }
-
-  /* Apple card — surface contrast + hairline, raises shadow on hover */
-  .card-apple {
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    transition:
-      box-shadow var(--motion-base) var(--ease-standard),
-      transform var(--motion-base) var(--ease-standard);
-  }
-  .card-apple:hover {
-    box-shadow: var(--elev-raised);
-  }
-
-  /* Apple input — border-led, blue halo on focus */
-  .field-apple {
+  /* ─── Compact input ───
+   * Border-led, 8px radius, 12px text. Teal halo on focus. */
+  .input-compact {
     width: 100%;
-    padding: 12px 14px;
-    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-body);
-    font-size: var(--text-base);
-    line-height: 1.2;
+    font-size: var(--text-md);
+    line-height: 1.3;
     outline: none;
     transition:
       border-color var(--motion-fast) var(--ease-standard),
       box-shadow var(--motion-fast) var(--ease-standard);
   }
-  .field-apple::placeholder { color: var(--muted); }
-  .field-apple:hover { border-color: var(--meta); }
-  .field-apple:focus-visible {
+  .input-compact::placeholder { color: var(--muted-foreground); }
+  .input-compact:hover { border-color: var(--muted-foreground); }
+  .input-compact:focus-visible {
     border-color: var(--accent);
     box-shadow: var(--focus-ring);
   }
 
-  /* Custom scrollbar — Apple-style thin track */
-  .scrollbar-apple::-webkit-scrollbar { width: 8px; height: 8px; }
-  .scrollbar-apple::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-apple::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
+  /* ─── Compact card ───
+   * Hairline border, no shadow by default. Surface-contrast led. */
+  .card-compact {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--motion-base) var(--ease-standard);
   }
-  .scrollbar-apple::-webkit-scrollbar-thumb:hover { background: var(--meta); }
-}
+  .card-compact:hover { border-color: var(--muted-foreground); }
 
-@layer utilities {
-  /* Apple-style link color (Body Link Blue) */
-  .text-link { color: var(--accent-active); }
-  .text-link:hover { color: var(--accent-hover); text-decoration: underline; }
-
-  /* Tight Apple display tracking on demand */
-  .tracking-display { letter-spacing: var(--tracking-display); }
-  .tracking-body { letter-spacing: -0.022em; }
-
-  /* Surface utilities */
-  .bg-surface-apple { background: var(--surface-apple); }
-  .bg-surface-warm { background: var(--surface-warm); }
-  .text-meta { color: var(--meta); }
-  .text-fg-2 { color: var(--foreground-2); }
-
-  /* Apple elevation */
-  .elev-ring { box-shadow: var(--elev-ring); }
-  .elev-raised { box-shadow: var(--elev-raised); }
-
-  /* Apple motion curve */
-  .transition-apple {
-    transition-property: background-color, border-color, color, box-shadow, transform;
-    transition-duration: var(--motion-fast);
-    transition-timing-function: var(--ease-standard);
+  /* ─── Tiny badge — 11px text, capsule shape ─── */
+  .badge-tiny {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    border-radius: 9999px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
   }
-  .transition-apple-slow {
-    transition-property: background-color, border-color, color, box-shadow, transform;
-    transition-duration: var(--motion-base);
-    transition-timing-function: var(--ease-standard);
+  .badge-teal {
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-color: var(--accent-subtle);
   }
-
-  /* Focus halo utility */
-  .focus-halo:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+  .badge-neutral {
+    background: var(--surface-hover);
+    color: var(--muted-foreground);
+    border-color: var(--border);
   }
-}
-
-/* ─────────────────────────────────────────────────────────────────────
- * Emil Kowalski animation layer
- *
- * Source: emilkowalski/skills/emil-design-eng/SKILL.md + animate/RECIPES.md
- *
- * Core principles applied here:
- *   1. Buttons feel responsive — scale(0.97) on :active, 160ms ease-out
- *   2. Popovers are origin-aware — scale from trigger, not center (modals exempt)
- *   3. Tooltips skip delay on subsequent hovers (instant after first open)
- *   4. Toasts use @starting-style for CSS-only entry animation
- *   5. Use CSS transitions, not keyframes, for interruptibility on rapid triggers
- *   6. Animate transform + opacity only (GPU-friendly, off main thread)
- *   7. Stagger group entrances (30-80ms) — decorative, never blocks interaction
- *   8. Reduced-motion: cross-fade, not slide/spring (gentler, not zero)
- *   9. Reduced-transparency: solid backgrounds, drop the blur
- * ─────────────────────────────────────────────────────────────────── */
-
-@layer components {
-  /* Button press feedback — universal, applies to any pressable element.
-   * Source: animate/RECIPES.md §Button press
-   * "scale() scales children too — the label and icons come along, which
-   *  is what makes it read as a physical press." */
-  .btn-press {
-    transition: transform 160ms var(--ease-out);
+  .badge-success {
+    background: color-mix(in oklab, var(--success), transparent 88%);
+    color: var(--success);
   }
-  .btn-press:active {
-    transform: scale(0.97);
+  .badge-warning {
+    background: color-mix(in oklab, var(--warning), transparent 88%);
+    color: var(--warning);
+  }
+  .badge-danger {
+    background: color-mix(in oklab, var(--destructive), transparent 88%);
+    color: var(--destructive);
   }
 
-  /* Enter animation — for elements that pop in (cards, panels, list items).
-   * Source: emil-design-eng §"Never animate from scale(0)"
-   * "Nothing in the real world disappears and reappears completely. Start
-   *  from scale(0.95) or higher, combined with opacity." */
-  .enter-pop {
-    animation: enter-pop 220ms var(--ease-out) both;
-  }
-  @keyframes enter-pop {
-    from {
-      opacity: 0;
-      transform: scale(0.96);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+  /* ─── Eyebrow label — 11px uppercase meta ─── */
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  /* Enter from below — for toasts, sheets, drawers.
-   * Uses translateY(100%) — relative to element's own height, not px. */
-  .enter-rise {
-    animation: enter-rise 400ms var(--ease-standard) both;
+  /* ─── InfoTooltip trigger — the '?' icon ───
+   * Small, dashed circle, teal on hover. */
+  .info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: 1px dashed var(--muted-foreground);
+    color: var(--muted-foreground);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: help;
+    transition: border-color var(--motion-fast), color var(--motion-fast), background var(--motion-fast);
   }
-  @keyframes enter-rise {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Staggered entrance for groups (cards, list items).
-   * Apply .stagger to the parent + .stagger-item to each child.
-   * 50ms between items — short enough to feel snappy, long enough to register.
-   * Decorative — never blocks pointer events. */
-  .stagger-item {
-    opacity: 0;
-    transform: translateY(8px);
-    animation: stagger-in 280ms var(--ease-out) forwards;
-  }
-  .stagger-item:nth-child(1) { animation-delay: 0ms; }
-  .stagger-item:nth-child(2) { animation-delay: 50ms; }
-  .stagger-item:nth-child(3) { animation-delay: 100ms; }
-  .stagger-item:nth-child(4) { animation-delay: 150ms; }
-  .stagger-item:nth-child(5) { animation-delay: 200ms; }
-  .stagger-item:nth-child(6) { animation-delay: 250ms; }
-  .stagger-item:nth-child(7) { animation-delay: 300ms; }
-  .stagger-item:nth-child(8) { animation-delay: 350ms; }
-  @keyframes stagger-in {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .info-trigger:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border-style: solid;
   }
 
-  /* Origin-aware popover — scales from trigger, not center.
-   * Source: emil-design-eng §"Make popovers origin-aware"
-   * "The default transform-origin: center is wrong for almost every popover.
-   *  Exception: modals. Modals should keep transform-origin: center because
-   *  they are not anchored to a specific trigger." */
+  /* ─── KPI tile — big numeric, tiny label ─── */
+  .kpi-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .kpi-number {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--foreground);
+  }
+  .kpi-label {
+    font-size: var(--text-xs);
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  /* ─── Compact table — 32px row height ─── */
+  .table-compact {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--text-base);
+  }
+  .table-compact thead th {
+    height: 32px;
+    padding: 0 var(--space-5);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 500;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  .table-compact tbody td {
+    height: 32px;
+    padding: 0 var(--space-5);
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--foreground-2);
+    font-size: var(--text-base);
+  }
+  .table-compact tbody tr:hover td {
+    background: var(--surface-hover);
+  }
+  .table-compact tbody tr:last-child td {
+    border-bottom: none;
+  }
+  /* Numeric cells — right-aligned mono */
+  .table-compact td[data-numeric] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    letter-spacing: -0.02em;
+  }
+
+  /* ─── Stat callout — inline stat with label ─── */
+  .stat-callout {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-callout .stat-value { font-weight: 600; }
+  .stat-callout .stat-label { font-size: var(--text-xs); color: var(--muted-foreground); }
+
+  /* ─── Section header — eyebrow + title row ─── */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+  }
+  .section-header h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  /* ─── Origin-aware popover (kept from Emil Kowalski layer) ─── */
   .popover-origin {
     transform-origin: var(--radix-popper-transform-origin, center);
     transition:
@@ -521,54 +583,29 @@
   .popover-origin[data-starting-style],
   .popover-origin[data-ending-style] {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 
-  /* Modal — stays centered, NOT origin-aware (the documented exception).
-   * Source: animate/RECIPES.md §Modal */
+  /* Modal — centered, NOT origin-aware */
   .modal-origin {
     transform-origin: center;
     transition:
-      opacity 250ms var(--ease-out),
-      transform 250ms var(--ease-out);
+      opacity 220ms var(--ease-out),
+      transform 220ms var(--ease-out);
   }
   .modal-origin[data-state="closed"],
   .modal-origin[data-starting-style],
   .modal-origin[data-ending-style] {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 
-  /* Drawer / sheet — iOS-style curve.
-   * Source: animate/RECIPES.md §Drawer / sheet */
-  .drawer-origin {
-    transition: transform 500ms var(--ease-drawer);
-  }
-
-  /* Toast enter — CSS-only via @starting-style (no JS mount flag needed).
-   * Source: animate/RECIPES.md §Toast
-   * "ease rather than ease-out, slightly slower than typical UI: Sonner reads
-   *  as elegant partly because its motion is tuned to the component's
-   *  personality rather than to the generic UI budget." */
-  .toast-enter {
-    opacity: 1;
-    transform: translateY(0);
-    transition:
-      opacity 400ms ease,
-      transform 400ms ease;
-    @starting-style {
-      opacity: 0;
-      transform: translateY(100%);
-    }
-  }
-
-  /* Tooltip — fast + skip animation on subsequent hovers.
-   * Source: animate/RECIPES.md §Tooltip */
+  /* Tooltip — fast */
   .tooltip-origin {
     transform-origin: var(--radix-popper-transform-origin, center);
     transition:
-      transform 125ms var(--ease-out),
-      opacity 125ms var(--ease-out);
+      transform 100ms var(--ease-out),
+      opacity 100ms var(--ease-out);
   }
   .tooltip-origin[data-state="closed"],
   .tooltip-origin[data-starting-style],
@@ -577,108 +614,94 @@
     transform: scale(0.97);
   }
 
-  /* Hover lift — for cards. Subtle, only on hover-capable pointers.
-   * Source: emil-design-eng §"Make popovers origin-aware" + Apple elev-raised */
-  @media (hover: hover) and (pointer: fine) {
-    .hover-lift {
-      transition:
-        box-shadow var(--motion-base) var(--ease-standard),
-        transform var(--motion-base) var(--ease-standard);
-    }
-    .hover-lift:hover {
-      box-shadow: var(--elev-raised);
-      transform: translateY(-2px);
-    }
+  /* Stagger entrance — short and subtle for compact UI */
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(4px);
+    animation: stagger-in 200ms var(--ease-out) forwards;
+  }
+  .stagger-item:nth-child(1) { animation-delay: 0ms; }
+  .stagger-item:nth-child(2) { animation-delay: 40ms; }
+  .stagger-item:nth-child(3) { animation-delay: 80ms; }
+  .stagger-item:nth-child(4) { animation-delay: 120ms; }
+  .stagger-item:nth-child(5) { animation-delay: 160ms; }
+  .stagger-item:nth-child(6) { animation-delay: 200ms; }
+  @keyframes stagger-in {
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Crossfade with blur — for state changes that look jarring without a bridge.
-   * Source: emil-design-eng §"Use blur to mask imperfect transitions"
-   * "Without blur, you see two distinct objects during a crossfade — the old
-   *  state and the new state overlapping. Blur bridges the visual gap." */
-  .crossfade-blur {
-    transition:
-      filter 200ms ease,
-      opacity 200ms ease;
+  /* Enter pop — for tab content / panels */
+  .enter-pop {
+    animation: enter-pop 180ms var(--ease-out) both;
   }
-  .crossfade-blur[data-transitioning] {
-    filter: blur(2px);
-    opacity: 0.7;
+  @keyframes enter-pop {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
   }
 }
 
-/* ─────────────────────────────────────────────────────────────────────
- * Reduced motion + reduced transparency (Apple HIG + Emil Kowalski)
- *
- * Source: apple-design/SKILL.md §14 + emil-design-eng §Accessibility
- *
- * Reduced motion doesn't mean NO feedback — it means gentler, non-vestibular
- * equivalents. We:
- *   - Drop slides + springs + parallax
- *   - Keep short opacity cross-fades (aids comprehension)
- *   - Drop elastic/overshoot
- *   - Keep color changes that aid comprehension
- * ─────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Surface utilities */
+  .bg-surface { background: var(--surface); }
+  .bg-surface-raised { background: var(--surface-raised); }
+  .bg-surface-hover { background: var(--surface-hover); }
+  .bg-accent-subtle { background: var(--accent-subtle); }
+
+  /* Text utilities */
+  .text-fg-2 { color: var(--foreground-2); }
+  .text-meta { color: var(--meta); }
+  .text-accent { color: var(--accent); }
+  .text-muted-fg { color: var(--muted-foreground); }
+
+  /* Border utilities */
+  .border-soft { border-color: var(--border-soft); }
+
+  /* Numeric utilities */
+  .tabular { font-variant-numeric: tabular-nums; }
+  .font-numeric { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* Tracking */
+  .tracking-display { letter-spacing: var(--tracking-display); }
+  .tracking-tight-2 { letter-spacing: -0.02em; }
+}
+
+/* ─── Reduced motion + accessibility ─── */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 200ms !important;
+  *, *::before, *::after {
+    animation-duration: 100ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 200ms !important;
+    transition-duration: 100ms !important;
     scroll-behavior: auto !important;
   }
-
-  /* Replace slides/springs with opacity-only cross-fades */
-  .enter-pop,
-  .enter-rise,
-  .stagger-item {
-    animation: fade-only 200ms ease both !important;
+  .stagger-item,
+  .enter-pop {
+    animation: fade-only 100ms ease both !important;
     transform: none !important;
   }
   @keyframes fade-only {
     from { opacity: 0; }
     to { opacity: 1; }
   }
-
-  /* Drop the press scale (which is motion) but keep the visual feedback */
-  .btn-press:active {
-    transform: none;
-    filter: brightness(0.95);
-  }
-
-  /* Drop the hover-lift transform */
-  .hover-lift:hover {
-    transform: none;
-  }
-
-  /* Drawer transitions become opacity-only */
-  .drawer-origin {
-    transition: opacity 200ms ease !important;
-  }
+  .btn-compact:active { transform: none; filter: brightness(0.95); }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  /* Frosted-glass surfaces become solid — Apple's documented behavior */
   .backdrop-blur-xl,
   .backdrop-blur-lg,
   .backdrop-blur-md,
   .backdrop-blur-sm {
     backdrop-filter: none !important;
-    background: var(--background) !important;
+    background: var(--surface) !important;
   }
 }
 
 @media (prefers-contrast: more) {
-  /* Near-solid backgrounds with defined, contrasting borders */
   :root {
-    --border: #1d1d1f;
-    --border-soft: #424245;
-    --muted: #424245;
-    --meta: #424245;
+    --border: #52525b;
+    --muted-foreground: #a1a1aa;
   }
-  .card-apple,
-  .field-apple,
-  .btn-pill-secondary {
-    border-width: 2px;
+  .light {
+    --border: #3f3f46;
+    --muted-foreground: #52525b;
   }
 }

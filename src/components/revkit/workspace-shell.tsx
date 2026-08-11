@@ -1,9 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   LayoutDashboard,
   Users,
@@ -12,10 +26,10 @@ import {
   ShieldCheck,
   Network,
   Download,
-  Settings,
+  Settings as SettingsIcon,
   Save,
   Circle,
-  ChevronLeft,
+  ArrowLeft,
   Loader2,
   FilePlus2,
   CheckCircle2,
@@ -31,6 +45,8 @@ import {
 } from "@/lib/types";
 import { addRecentFile } from "@/lib/project/id";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/revkit/theme-toggle";
+import { UserChip } from "@/components/revkit/user-chip";
 
 export type WorkspaceTab =
   | "overview"
@@ -49,48 +65,15 @@ interface Props {
   children: React.ReactNode;
 }
 
-const NAV: {
-  id: WorkspaceTab;
-  label: string;
-  icon: React.ElementType;
-  badge?: (r: Review) => React.ReactNode;
-}[] = [
+const NAV: { id: WorkspaceTab; label: string; icon: React.ElementType; badge?: (r: Review) => React.ReactNode }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  {
-    id: "studies",
-    label: "Studies",
-    icon: Users,
-    badge: (r) => (
-      <span className="ml-auto text-[11px] text-meta font-medium">{r.studies.length}</span>
-    ),
-  },
-  {
-    id: "references",
-    label: "References",
-    icon: FileText,
-    badge: (r) => (
-      <span className="ml-auto text-[11px] text-meta font-medium">{r.references.length}</span>
-    ),
-  },
-  {
-    id: "comparisons",
-    label: "Comparisons & Outcomes",
-    icon: GitCompare,
-    badge: (r) => (
-      <span className="ml-auto text-[11px] text-meta font-medium">{r.comparisons.length}</span>
-    ),
-  },
-  {
-    id: "rob",
-    label: "Risk of Bias",
-    icon: ShieldCheck,
-    badge: (r) => (
-      <span className="ml-auto text-[11px] text-meta font-medium">{r.robAssessments.length}</span>
-    ),
-  },
+  { id: "studies", label: "Studies", icon: Users, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.studies.length}</span> },
+  { id: "references", label: "References", icon: FileText, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.references.length}</span> },
+  { id: "comparisons", label: "Comparisons", icon: GitCompare, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.comparisons.length}</span> },
+  { id: "rob", label: "Risk of Bias", icon: ShieldCheck, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.robAssessments.length}</span> },
   { id: "prisma", label: "PRISMA Flow", icon: Network },
   { id: "export", label: "Export", icon: Download },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export function WorkspaceShell({ active, onTabChange, onExit, children }: Props) {
@@ -102,7 +85,6 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
   const markSaved = useReviewStore((s) => s.markSaved);
   const setRecentFiles = useReviewStore((s) => s.setRecentFiles);
 
-  // Beforeunload handler for unsaved changes
   useEffect(() => {
     function handler(e: BeforeUnloadEvent) {
       if (isDirty) {
@@ -149,16 +131,10 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
         savedAt: new Date().toISOString(),
       });
       setRecentFiles([]);
-      // reload recent files in background
       try {
-        const recent = await fetch("/api/reviews").then((r) => r.json());
-        // localStorage mirror:
         const ls = localStorage.getItem("revkit:recent-files");
-        const parsed = ls
-          ? (JSON.parse(ls) as { id: string; title: string; type: string; savedAt: string }[])
-          : [];
+        const parsed = ls ? (JSON.parse(ls) as { id: string; title: string; type: string; savedAt: string }[]) : [];
         setRecentFiles(parsed);
-        void recent;
       } catch {
         // ignore
       }
@@ -172,70 +148,73 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* ───────── Top bar — Apple frosted-glass toolbar ───────── */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+      {/* Top bar — compact 44px */}
+      <header className="border-b border-border bg-surface/80 backdrop-blur-xl sticky top-0 z-30">
+        <div className="flex h-11 items-center justify-between px-3 sm:px-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={onExit}
-              className="btn-press shrink-0 inline-flex items-center gap-0.5 text-fg-2 hover:text-foreground transition-apple focus-halo rounded-md px-2 py-1 -ml-2"
+              className="btn-compact btn-ghost h-7 px-2 text-[12px]"
+              aria-label="Back to library"
             >
-              <ChevronLeft className="size-4" />
-              <span className="hidden sm:inline text-[14px]">Library</span>
+              <ArrowLeft size={14} />
+              <span className="hidden sm:inline">Library</span>
             </button>
-            <Separator orientation="vertical" className="h-5 shrink-0" />
+            <Separator orientation="vertical" className="h-5" />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="font-display font-semibold tracking-display text-base truncate">
-                  {review.title}
-                </h1>
+              <div className="flex items-center gap-1.5">
                 {isDirty && (
-                  <span
-                    className="size-1.5 rounded-full bg-[#0071e3] shrink-0"
-                    aria-label="unsaved changes"
-                  />
+                  <Circle className="size-1.5 fill-accent text-accent" aria-label="unsaved changes" />
                 )}
+                <h1 className="font-semibold text-[13px] truncate">{review.title}</h1>
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-fg mt-0.5">
                 {reviewTypeMeta && (
-                  <span className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold">
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 rounded-sm">
                     {reviewTypeMeta.label}
-                  </span>
+                  </Badge>
                 )}
-                <span className="bg-[#0071e3] text-white rounded-full px-2 py-0.5 text-[11px] font-medium capitalize leading-none">
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 rounded-sm capitalize">
                   {review.phase.replace("_", " ")}
-                </span>
+                </Badge>
                 {dbId && (
-                  <span className="hidden sm:inline text-[11px] text-meta">
-                    · saved {new Date(review.updatedAt).toLocaleString()}
+                  <span className="hidden md:inline text-[10px] text-meta">
+                    saved {new Date(review.updatedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
+          <div className="flex items-center gap-1.5">
+            <UserChip onClick={() => onTabChange("settings")} />
+            <ThemeToggle />
+            <Separator orientation="vertical" className="h-5 hidden sm:block" />
+            <Button
+              size="sm"
               onClick={handleSave}
               disabled={isSaving || !isDirty}
-              className="btn-pill btn-press px-5 py-2 text-[14px] font-medium focus-halo"
+              className="btn-compact btn-primary h-7 px-3 text-[12px] gap-1.5"
             >
               {isSaving ? (
-                <Loader2 className="size-4 animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
               ) : (
-                <Save className="size-4" />
+                <Save size={12} />
               )}
               <span className="hidden sm:inline">{isSaving ? "Saving…" : "Save"}</span>
-            </button>
+              <kbd className="hidden md:inline ml-1 text-[9px] text-primary-foreground/60 border border-primary-foreground/20 rounded px-1">
+                ⌘S
+              </kbd>
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* ───────── Main: sidebar + content ───────── */}
+      {/* Main: sidebar + content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar — Apple warm-tinted navigator */}
-        <aside className="w-56 bg-surface-warm border-r border-border shrink-0 overflow-y-auto scrollbar-apple py-4">
-          <nav className="px-2 space-y-0.5">
+        {/* Sidebar — 220px, compacts to icons on small screens */}
+        <aside className="w-14 sm:w-56 border-r border-border bg-sidebar shrink-0 overflow-y-auto scrollbar-thin">
+          <nav className="p-1.5 space-y-0.5">
             {NAV.map((item) => {
               const isActive = active === item.id;
               const Icon = item.icon;
@@ -243,48 +222,40 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`btn-press w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] transition-apple focus-halo ${
-                    isActive
-                      ? "bg-[#0071e3]/10 text-[#0071e3] font-medium"
-                      : "text-fg-2 hover:bg-surface-apple hover:text-foreground"
+                  data-active={isActive}
+                  className={`btn-compact btn-ghost w-full h-8 px-2 text-[12px] ${
+                    isActive ? "" : ""
                   }`}
                   title={item.label}
                 >
                   <Icon className="size-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                  {item.badge?.(review)}
+                  <span className="hidden sm:inline truncate">{item.label}</span>
+                  {review && <span className="hidden sm:inline">{item.badge?.(review)}</span>}
                 </button>
               );
             })}
           </nav>
-
-          <div className="mt-8 px-4 space-y-1.5 text-[11px] text-meta">
-            <div>
-              <span className="font-medium text-fg-2">App version:</span> 0.1.0
-            </div>
-            <div>
-              <span className="font-medium text-fg-2">File format:</span> revkit-1
-            </div>
-            <div className="truncate">
-              <span className="font-medium text-fg-2">Review ID:</span>{" "}
-              <span className="font-mono">{review.id.slice(0, 12)}…</span>
-            </div>
+          <Separator className="my-1.5 hidden sm:block" />
+          <div className="p-2 space-y-1 text-[10px] text-meta hidden sm:block">
+            <div className="font-mono tabular">{review.id.slice(0, 12)}…</div>
+            <div>revkit-1 · v0.1.0</div>
           </div>
         </aside>
 
-        {/* Main content — Apple reading measure.
-            Tab transitions use CSS-only .enter-pop (220ms scale(0.96)→1 +
-            opacity 0→1, ease-out) keyed off `active` so each tab switch remounts
-            the panel and replays the entrance. Per Emil's "Use CSS transitions
-            over keyframes for interruptible UI." No framer-motion = off main
-            thread. */}
-        <main className="flex-1 overflow-y-auto scrollbar-apple bg-background">
-          <div
-            key={active}
-            className="enter-pop p-6 md:p-10 max-w-5xl mx-auto"
-          >
-            {children}
-          </div>
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto scrollbar-thin bg-background">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+              className="p-4 sm:p-5 max-w-6xl mx-auto"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
@@ -311,7 +282,6 @@ function OverviewBody({
   updateMeta: ReturnType<typeof useReviewStore.getState>["updateMeta"];
   setPhase: ReturnType<typeof useReviewStore.getState>["setPhase"];
 }) {
-  // Re-key the inputs on review.id switch to reset state cleanly
   const titleKey = `${review.id}-title`;
   const rqKey = `${review.id}-rq`;
 
@@ -328,37 +298,23 @@ function OverviewBody({
   const outcomeCount = review.comparisons.reduce((acc, c) => acc + c.outcomes.length, 0);
 
   return (
-    <div className="space-y-8">
-      {/* ───── Page header — Apple eyebrow + display headline + subhead ───── */}
-      <header>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-[#0071e3] font-semibold">
-          Overview
-        </p>
-        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-display mt-2">
-          {review.title || "Untitled review"}
-        </h1>
-        <p className="text-base text-fg-2 mt-2">
+    <div className="space-y-5">
+      <div>
+        <div className="eyebrow">OVERVIEW</div>
+        <h2 className="text-xl font-semibold tracking-display mt-1">{review.title}</h2>
+        <p className="text-xs text-muted-fg mt-1">
           Review metadata, phase tracking, and progress summary.
         </p>
-      </header>
+      </div>
 
-      {/* ───── Phase stepper — Apple segmented control ───── */}
-      <section className="card-apple p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold">
-            Phase
-          </h3>
-          <span className="bg-[#0071e3] text-white rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize leading-none">
-            {review.phase.replace("_", " ")}
-          </span>
+      {/* Phase stepper — compact segmented */}
+      <Card className="card-compact p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="eyebrow">PHASE</div>
+          <Badge className="badge-tiny badge-teal capitalize">{review.phase.replace("_", " ")}</Badge>
         </div>
-        <div className="h-1 bg-surface-apple rounded-full overflow-hidden mb-4">
-          <div
-            className="bg-[#0071e3] h-full transition-apple-slow"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <Progress value={pct} className="h-1 mb-3 bg-surface-hover" />
+        <div className="flex flex-wrap gap-1.5">
           {REVIEW_PHASES.map((p, i) => {
             const isCurrent = p.value === review.phase;
             const isDone = i < phaseIdx;
@@ -366,13 +322,7 @@ function OverviewBody({
               <button
                 key={p.value}
                 onClick={() => setPhase(p.value as ReviewPhase)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-apple focus-halo ${
-                  isCurrent
-                    ? "bg-[#0071e3] text-white"
-                    : isDone
-                    ? "bg-[#0071e3]/10 text-[#0071e3]"
-                    : "bg-surface-apple text-meta hover:bg-surface-apple/70 hover:text-fg-2"
-                }`}
+                className={`badge-tiny ${isCurrent ? "badge-teal" : isDone ? "badge-success" : "badge-neutral"} cursor-pointer transition-colors`}
                 title={isCurrent ? "Current phase" : isDone ? "Completed phase" : "Not started"}
               >
                 {isDone ? (
@@ -387,155 +337,101 @@ function OverviewBody({
             );
           })}
         </div>
-      </section>
+      </Card>
 
-      {/* ───── Editable fields — Apple form rows ───── */}
-      <div className="grid sm:grid-cols-2 gap-5">
-        <div className="card-apple p-6 space-y-2">
-          <Label
-            htmlFor="ov-title"
-            className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold"
-          >
-            Review title
+      {/* KPI tiles — compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiTile number={studyCount} label="Studies" />
+        <KpiTile number={includedRef} label="Refs included" />
+        <KpiTile number={outcomeCount} label="Outcomes" />
+        <KpiTile number={cmpCount} label="Comparisons" />
+      </div>
+
+      {/* Editable fields */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Card className="card-compact p-4 space-y-2">
+          <Label htmlFor="ov-title" className="eyebrow">
+            Title
           </Label>
-          <input
+          <Input
             key={titleKey}
             id="ov-title"
             defaultValue={review.title}
             onBlur={(e) => {
-              if (e.target.value.trim() !== review.title)
-                updateMeta({ title: e.target.value.trim() });
+              if (e.target.value.trim() !== review.title) updateMeta({ title: e.target.value.trim() });
             }}
-            className="field-apple font-medium"
+            className="input-compact h-8 text-[13px] font-medium"
           />
-        </div>
-        <div className="card-apple p-6 space-y-2">
-          <Label className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold">
-            Review type (read-only)
-          </Label>
-          <div className="flex items-center gap-2 pt-1">
-            <span className="inline-flex items-center rounded-md bg-surface-apple px-2.5 py-1 text-sm font-medium text-fg-2">
-              {reviewTypeMeta?.label ?? review.type}
-            </span>
+        </Card>
+        <Card className="card-compact p-4 space-y-2">
+          <Label className="eyebrow">Type (read-only)</Label>
+          <div className="flex items-center gap-2 h-8">
+            <Badge className="badge-tiny badge-neutral">{reviewTypeMeta?.label ?? review.type}</Badge>
             {review.subType && (
-              <span className="inline-flex items-center rounded-md border border-border px-2.5 py-1 text-sm text-fg-2">
+              <Badge className="badge-tiny badge-neutral">
                 {REVIEW_SUBTYPES.find((s) => s.value === review.subType)?.label}
-              </span>
+              </Badge>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
-      <section className="card-apple p-6 space-y-2">
-        <Label
-          htmlFor="ov-rq"
-          className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold"
-        >
-          Research question (PICO / PECO / PICTO)
+      <Card className="card-compact p-4 space-y-2">
+        <Label htmlFor="ov-rq" className="eyebrow">
+          Research question (PICO)
         </Label>
-        <textarea
+        <Textarea
           key={rqKey}
           id="ov-rq"
           defaultValue={review.researchQuestion ?? ""}
           onBlur={(e) => {
-            if (e.target.value !== (review.researchQuestion ?? ""))
-              updateMeta({ researchQuestion: e.target.value });
+            if (e.target.value !== (review.researchQuestion ?? "")) updateMeta({ researchQuestion: e.target.value });
           }}
-          rows={3}
+          rows={2}
           placeholder="e.g. In adults with acute sinusitis, do systemic corticosteroids improve symptom resolution compared to placebo?"
-          className="field-apple min-h-[88px] resize-y"
+          className="input-compact text-[13px] min-h-[60px]"
         />
-        <p className="text-xs text-meta">
-          A clear PICO question helps guide your screening criteria and analysis plan.
-        </p>
-      </section>
+      </Card>
 
-      {/* ───── Quick stats — Apple KPI tiles ───── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-        <div className="card-apple p-5">
-          <div className="font-display text-4xl font-semibold text-[#0071e3] tracking-display">
-            {studyCount}
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.08em] text-meta mt-2">Studies</div>
-        </div>
-        <div className="card-apple p-5">
-          <div className="font-display text-4xl font-semibold text-[#0071e3] tracking-display">
-            {includedRef}
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.08em] text-meta mt-2">
-            Refs included
-          </div>
-        </div>
-        <div className="card-apple p-5">
-          <div className="font-display text-4xl font-semibold text-[#0071e3] tracking-display">
-            {outcomeCount}
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.08em] text-meta mt-2">Outcomes</div>
-        </div>
-        <div className="card-apple p-5">
-          <div className="font-display text-4xl font-semibold text-[#0071e3] tracking-display">
-            {cmpCount}
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.08em] text-meta mt-2">Comparisons</div>
-        </div>
-      </div>
-
-      {/* ───── Reference screening status ───── */}
+      {/* References screening bars */}
       {refCount > 0 && (
-        <section className="card-apple p-6">
-          <h3 className="text-[11px] uppercase tracking-[0.08em] text-meta font-semibold mb-4">
-            Reference screening status
-          </h3>
-          <div className="space-y-3">
-            <RefBar label="Included" count={includedRef} total={refCount} color="bg-[#16a34a]" />
-            <RefBar
-              label="Pending / Maybe"
-              count={maybeRef}
-              total={refCount}
-              color="bg-[#eab308]"
-            />
-            <RefBar label="Excluded" count={excludedRef} total={refCount} color="bg-[#dc2626]" />
-            <RefBar
-              label="Not screened"
-              count={refCount - includedRef - maybeRef - excludedRef}
-              total={refCount}
-              color="bg-[#86868b]"
-            />
+        <Card className="card-compact p-4">
+          <div className="eyebrow mb-3">SCREENING STATUS</div>
+          <div className="space-y-2">
+            <RefBar label="Included" count={includedRef} total={refCount} color="bg-[var(--success)]" />
+            <RefBar label="Pending / Maybe" count={maybeRef} total={refCount} color="bg-[var(--warning)]" />
+            <RefBar label="Excluded" count={excludedRef} total={refCount} color="bg-[var(--destructive)]" />
+            <RefBar label="Not screened" count={refCount - includedRef - maybeRef - excludedRef} total={refCount} color="bg-[var(--muted-foreground)]" />
           </div>
-        </section>
+        </Card>
       )}
 
-      {/* ───── Demo data loader ───── */}
       <DemoDataLoader />
     </div>
   );
 }
 
-function RefBar({
-  label,
-  count,
-  total,
-  color,
-}: {
-  label: string;
-  count: number;
-  total: number;
-  color: string;
-}) {
+function KpiTile({ number, label }: { number: number; label: string }) {
+  return (
+    <div className="kpi-tile">
+      <div className="kpi-number">{number}</div>
+      <div className="kpi-label">{label}</div>
+    </div>
+  );
+}
+
+function RefBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
     <div>
-      <div className="flex items-center justify-between text-xs mb-1.5">
-        <span className="text-fg-2">{label}</span>
-        <span className="font-medium text-meta">
-          {count} / {total}
+      <div className="flex items-center justify-between text-[11px] mb-1">
+        <span className="text-muted-fg">{label}</span>
+        <span className="font-numeric tabular text-fg-2">
+          {count} <span className="text-meta">/ {total}</span>
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-surface-apple overflow-hidden">
-        <div
-          className={`h-full ${color} transition-apple-slow`}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="h-1 rounded-full bg-surface-hover overflow-hidden">
+        <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -553,19 +449,19 @@ function DemoDataLoader() {
   if (review.comparisons.length > 0 || review.studies.length > 0) return null;
 
   return (
-    <div className="card-apple border-dashed bg-surface-warm p-6">
-      <div className="flex items-start gap-4">
-        <div className="size-10 rounded-xl bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center shrink-0">
-          <FilePlus2 className="size-5" />
+    <Card className="card-compact border-dashed bg-surface p-4">
+      <div className="flex items-start gap-3">
+        <div className="size-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+          <FilePlus2 className="size-4" />
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-display text-base font-semibold">Quick start: load sample data</h3>
-          <p className="text-sm text-fg-2 mt-1">
-            Add a sample comparison, 5 studies with dichotomous data, and see a real meta-analysis
-            forest plot rendered. Replace the data with your own any time.
+        <div className="flex-1">
+          <h3 className="text-[13px] font-semibold">Quick start: load sample data</h3>
+          <p className="text-[11px] text-muted-fg mt-0.5">
+            Add a sample comparison, 5 studies with dichotomous data, and see a real meta-analysis forest plot.
           </p>
-          <button
-            className="btn-pill px-4 py-1.5 text-[13px] mt-4 focus-halo"
+          <Button
+            size="sm"
+            className="btn-compact btn-primary h-7 mt-2 px-2.5 text-[12px]"
             onClick={() => {
               const cmpId = addComparison("Aspirin vs placebo");
               const outId = addOutcome(cmpId, {
@@ -611,16 +507,14 @@ function DemoDataLoader() {
                 });
               });
               markDirty();
-              toast.success("Sample data loaded", {
-                description: "Aspirin meta-analysis with 5 RCTs",
-              });
+              toast.success("Sample data loaded", { description: "Aspirin meta-analysis with 5 RCTs" });
             }}
           >
-            <FilePlus2 className="size-4" />
+            <FilePlus2 className="size-3.5 mr-1" />
             Load sample intervention data
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

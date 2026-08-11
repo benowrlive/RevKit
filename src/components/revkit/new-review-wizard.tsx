@@ -1,7 +1,25 @@
 "use client";
 
+// src/components/revkit/new-review-wizard.tsx
+//
+// Compact redesign — 4-step wizard dialog with wizard-of-math tooltips.
+//
+// Layout:
+//   • Dialog: max-w-2xl, .modal-origin, rounded-[10px], p-6 (24px).
+//   • Header (compact): eyebrow "STEP X OF 4 · <LABEL>" + H2 text-xl +
+//     sub text-xs text-muted-fg.
+//   • Step indicator: thin h-0.5 bg-surface-hover track with bg-accent fill.
+//   • Step content: max-h-[60vh] overflow-y-auto.
+//   • Footer: Cancel (ghost, text-only) | Back (secondary, CaretLeft) |
+//     Next/Create (primary; Check for final step).
+//
+// All five steps use Phosphor icons. Note: this installed version of
+// @phosphor-icons/react (v2.1.10) does NOT export bare names Activity,
+// Layers, Settings2, ChevronLeft/ChevronRight, etc. Substitutes:
+//   Activity → Pulse · Layers → Stack · Settings2 → Gear
+//   ChevronLeft/Right → CaretLeft/CaretRight
+
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -18,15 +36,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Activity,
-  FlaskConical,
+  Pulse,
   Microscope,
-  Layers,
-  Settings2,
-  ArrowRight,
-  ArrowLeft,
+  Flask,
+  Stack,
+  Gear,
+  CaretLeft,
+  CaretRight,
   Check,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { InfoTooltip } from "@/components/revkit/info-tooltip";
 import {
   REVIEW_TYPES,
   REVIEW_SUBTYPES,
@@ -46,11 +65,11 @@ interface Props {
 }
 
 const TYPE_ICONS: Record<ReviewType, React.ElementType> = {
-  INTERVENTION: Activity,
+  INTERVENTION: Pulse,
   DTA: Microscope,
-  METHODOLOGY: FlaskConical,
-  OVERVIEW: Layers,
-  FLEXIBLE: Settings2,
+  METHODOLOGY: Flask,
+  OVERVIEW: Stack,
+  FLEXIBLE: Gear,
 };
 
 const SAMPLE_TITLES: Record<ReviewType, string> = {
@@ -61,17 +80,20 @@ const SAMPLE_TITLES: Record<ReviewType, string> = {
   FLEXIBLE: "Custom review",
 };
 
-// Emil Kowalski's --ease-out curve (cubic-bezier(0.23, 1, 0.32, 1)) —
-// starts fast, feels responsive. Faster-feeling than Apple's standard curve
-// (0.28, 0, 0.22, 1) which is more conservative. Used for the step slide.
-// Source: emilkowalski/skills/emil-design-eng/SKILL.md §"Ease-out curves".
-const EMIL_EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
+const STEP_LABELS = ["Choose type", "Sub-type", "Title & question", "Confirm"] as const;
 
-const STEP_LABELS = [
-  "Choose type",
-  "Sub-type",
-  "Title & question",
-  "Confirm",
+const STEP_EYEBROWS = [
+  "Step 1 of 4 · Choose type",
+  "Step 2 of 4 · Sub-type",
+  "Step 3 of 4 · Title & question",
+  "Step 4 of 4 · Confirm",
+] as const;
+
+const STEP_DESCRIPTIONS = [
+  "Pick the review type — this chooses your RoB tool and analysis engine.",
+  "Optional tag that nudges suggested fields. Change later.",
+  "Short title and PICO-formatted research question.",
+  "Confirm and create. Defaults can be tweaked later in Settings.",
 ] as const;
 
 export function NewReviewWizard({ open, onClose, onCreate }: Props) {
@@ -118,53 +140,50 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : close())}>
       <DialogContent
-        className="modal-origin max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+        className="modal-origin max-w-2xl sm:max-w-2xl rounded-[10px] border border-border bg-background p-6 shadow-lg"
+        showCloseButton={false}
       >
-        {/* ─── Header: eyebrow + display title + description ─── */}
-        <DialogHeader className="gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0071e3]">
-            New Review
-          </span>
-          <DialogTitle className="font-display text-2xl font-semibold tracking-display">
-            Create a systematic review
+        {/* ─── Header: eyebrow + H2 title + description ─── */}
+        <DialogHeader className="gap-1 text-left">
+          <span className="eyebrow">{STEP_EYEBROWS[step]}</span>
+          <DialogTitle className="mt-1 text-xl font-semibold tracking-display">
+            {STEP_LABELS[step]}
           </DialogTitle>
-          <DialogDescription className="mt-1 text-sm text-fg-2">
-            Walk through four quick steps. You can refine every field later on
-            the Overview page.
+          <DialogDescription className="mt-1 text-xs text-muted-fg">
+            {STEP_DESCRIPTIONS[step]}
           </DialogDescription>
         </DialogHeader>
 
-        {/* ─── Step indicator: Apple progress bar + meta label ─── */}
-        <div className="space-y-2">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-surface-apple">
-            <div
-              className="h-full rounded-full bg-[#0071e3] transition-apple-slow"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.08em] text-meta">
-            <span>Step {step + 1} of {totalSteps}</span>
-            <span>{STEP_LABELS[step]}</span>
-          </div>
+        {/* ─── Step indicator: thin h-0.5 track with bg-accent fill ─── */}
+        <div className="h-0.5 w-full rounded-full bg-surface-hover">
+          <div
+            className="h-full rounded-full bg-accent transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
 
-        <AnimatePresence mode="wait">
+        {/* ─── Step content (max-h-[60vh] overflow-y-auto) ───
+            Each step is keyed so React remounts on step change, retriggering
+            the .enter-pop animation. */}
+        <div className="-mx-1 max-h-[60vh] overflow-y-auto px-1">
           {step === 0 && (
-            <motion.div
-              key="step0"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: EMIL_EASE }}
-              className="space-y-4"
-            >
-              <label className="block font-display text-sm font-semibold tracking-display text-foreground">
-                Which type of review do you want to create?
-              </label>
+            <div key="step0" className="enter-pop space-y-3">
+              <div className="flex items-center gap-1.5">
+                <label className="text-sm font-medium">
+                  Which type of review do you want to create?
+                </label>
+                <InfoTooltip
+                  title="Review type"
+                  what="Pick the Cochrane review type. This determines your RoB tool, analysis engine, and default fields."
+                  why="Each type has different statistics: Intervention uses MH/IV with OR/RR/MD; DTA uses sensitivity/specificity; Methodology assesses studies themselves; Overview summarizes other reviews."
+                  example="Intervention = does X work better than Y? DTA = how accurate is test X for disease Y?"
+                  side="right"
+                />
+              </div>
               <RadioGroup
                 value={type ?? ""}
                 onValueChange={(v) => setType(v as ReviewType)}
-                className="grid grid-cols-1 gap-3 md:grid-cols-2"
+                className="grid grid-cols-1 gap-2"
               >
                 {REVIEW_TYPES.map((t) => {
                   const Icon = TYPE_ICONS[t.value];
@@ -172,10 +191,10 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   return (
                     <label
                       key={t.value}
-                      className={`stagger-item group cursor-pointer rounded-[18px] border-2 p-5 transition-apple ${
+                      className={`stagger-item cursor-pointer rounded-[10px] border-2 p-3 transition-colors ${
                         checked
-                          ? "border-[#0071e3] bg-[#0071e3]/5"
-                          : "border-border hover:border-[#0071e3]/40 hover:bg-surface-warm"
+                          ? "border-accent bg-accent-subtle"
+                          : "border-border hover:border-muted-fg hover:bg-surface-hover"
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -185,41 +204,29 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                           tabIndex={-1}
                         />
                         <div
-                          className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] transition-apple ${
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-md transition-colors ${
                             checked
-                              ? "bg-[#0071e3]/10 text-[#0071e3]"
-                              : "bg-surface-apple text-fg-2"
+                              ? "bg-accent-subtle text-accent"
+                              : "bg-surface-hover text-fg-2"
                           }`}
                         >
-                          <Icon className="size-4" />
+                          <Icon size={16} weight="duotone" />
                         </div>
                         <div className="flex-1 space-y-1">
-                          <div className="font-display text-sm font-semibold tracking-display text-foreground">
-                            {t.label}
-                          </div>
-                          <p className="mt-0.5 text-xs text-fg-2">
-                            {t.description}
-                          </p>
+                          <div className="text-md font-medium">{t.label}</div>
+                          <p className="text-xs text-muted-fg">{t.description}</p>
                           <div className="flex flex-wrap gap-1 pt-1">
                             {t.usesRob2 && (
-                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
-                                RoB 2
-                              </span>
+                              <span className="badge-tiny badge-neutral">RoB 2</span>
                             )}
                             {t.usesRobinsI && (
-                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
-                                ROBINS-I
-                              </span>
+                              <span className="badge-tiny badge-neutral">ROBINS-I</span>
                             )}
                             {t.usesQuadas2 && (
-                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
-                                QUADAS-2
-                              </span>
+                              <span className="badge-tiny badge-neutral">QUADAS-2</span>
                             )}
                             {t.usesDta && (
-                              <span className="rounded-full bg-surface-apple px-1.5 py-0.5 text-[10px] text-meta">
-                                DTA
-                              </span>
+                              <span className="badge-tiny badge-neutral">DTA</span>
                             )}
                           </div>
                         </div>
@@ -228,26 +235,20 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   );
                 })}
               </RadioGroup>
-            </motion.div>
+            </div>
           )}
 
           {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: EMIL_EASE }}
-              className="space-y-4"
-            >
-              <div className="space-y-1">
-                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta">
-                  Sub-type (optional)
-                </label>
-                <p className="text-xs text-fg-2">
-                  Prognosis, Etiology, and Qualitative reviews are implemented
-                  as a tag rather than a separate code path.
-                </p>
+            <div key="step1" className="enter-pop space-y-3">
+              <div className="flex items-center gap-1.5">
+                <label className="text-sm font-medium">Sub-type (optional)</label>
+                <InfoTooltip
+                  title="Sub-type"
+                  what="Sub-types are tags that affect suggested fields."
+                  why="Prognosis, Etiology, and Qualitative are implemented as a tag rather than a separate code path."
+                  example="Pick None if unsure — you can change later in Settings."
+                  side="right"
+                />
               </div>
               <Select
                 value={subType ?? "none"}
@@ -255,7 +256,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   setSubType(v === "none" ? null : (v as ReviewSubType))
                 }
               >
-                <SelectTrigger className="field-apple focus-halo h-auto w-full justify-between rounded-[8px] border-border bg-background px-3.5 py-3 text-[17px] shadow-none focus-visible:ring-0">
+                <SelectTrigger className="input-compact h-8 w-full justify-between font-normal">
                   <SelectValue placeholder="None (default)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -267,135 +268,120 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="rounded-[12px] border border-dashed border-border bg-surface-warm p-4">
-                <p className="text-xs text-fg-2">
-                  <span className="font-semibold text-foreground">Tip:</span>{" "}
-                  Choose <span className="font-medium">None</span> if you're
-                  unsure — sub-types only nudge suggested fields and defaults.
-                </p>
-              </div>
-            </motion.div>
+              <p className="text-xs text-muted-fg">
+                Sub-types are tags that affect suggested fields. You can change
+                later.
+              </p>
+            </div>
           )}
 
           {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: EMIL_EASE }}
-              className="space-y-5"
-            >
-              <div className="space-y-2">
-                <label
-                  htmlFor="rev-title"
-                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta"
-                >
-                  Title
-                </label>
+            <div key="step2" className="enter-pop space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor="rev-title" className="text-sm font-medium">
+                    Title
+                  </label>
+                  <InfoTooltip
+                    title="Title"
+                    what="Short descriptive title."
+                    why="Appears in exports and as the filename."
+                    example="Aspirin for secondary prevention of cardiovascular events"
+                    side="right"
+                  />
+                </div>
                 <input
                   id="rev-title"
                   placeholder={type ? SAMPLE_TITLES[type] : "Enter review title"}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="field-apple focus-halo"
+                  className="input-compact"
                 />
               </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="rev-rq"
-                  className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-meta"
-                >
-                  Research question (optional)
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <label htmlFor="rev-rq" className="text-sm font-medium">
+                    Research question
+                  </label>
+                  <InfoTooltip
+                    title="Research question"
+                    what="PICO format recommended."
+                    why="A clear PICO question guides the comparison and outcome structure."
+                    formula="P + I + C + O"
+                    example="In adults with prior MI [P], does aspirin [I] vs placebo [C] reduce all-cause mortality [O]?"
+                    side="right"
+                  />
+                </div>
                 <textarea
                   id="rev-rq"
-                  placeholder="e.g. In adults with acute sinusitis, do systemic corticosteroids improve symptom resolution compared to placebo?"
+                  placeholder="In adults with prior MI, does aspirin reduce all-cause mortality vs placebo?"
                   value={rq}
                   onChange={(e) => setRq(e.target.value)}
                   rows={4}
-                  className="field-apple focus-halo min-h-[80px] resize-y"
+                  className="input-compact min-h-[80px] resize-y"
                 />
-                <p className="mt-2 text-xs text-meta">
-                  A clear PICO question (Population, Intervention, Comparator,
-                  Outcome) helps guide the review.
+                <p className="text-xs text-muted-fg">
+                  PICO breakdown:{" "}
+                  <span className="text-accent">P</span>opulation ·{" "}
+                  <span className="text-accent">I</span>ntervention ·{" "}
+                  <span className="text-accent">C</span>omparator ·{" "}
+                  <span className="text-accent">O</span>utcome.
                 </p>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: EMIL_EASE }}
-              className="space-y-4"
-            >
-              <label className="block font-display text-sm font-semibold tracking-display text-foreground">
-                Confirm and create
-              </label>
-              <div className="card-apple space-y-3 p-5">
+            <div key="step3" className="enter-pop space-y-3">
+              <label className="text-sm font-medium">Confirm and create</label>
+              <div className="card-compact space-y-2 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs uppercase tracking-[0.08em] text-meta">
-                    Type
-                  </span>
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="eyebrow">Type</span>
+                  <span className="text-sm font-medium">
                     {REVIEW_TYPES.find((t) => t.value === type)?.label}
                   </span>
                 </div>
-                <div className="border-t border-[var(--border-soft)]" />
+                <div className="border-t border-soft" />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs uppercase tracking-[0.08em] text-meta">
-                    Sub-type
-                  </span>
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="eyebrow">Sub-type</span>
+                  <span className="text-sm font-medium">
                     {subType
                       ? REVIEW_SUBTYPES.find((s) => s.value === subType)?.label
                       : "None"}
                   </span>
                 </div>
-                <div className="border-t border-[var(--border-soft)]" />
+                <div className="border-t border-soft" />
                 <div className="flex items-start justify-between gap-3">
-                  <span className="shrink-0 text-xs uppercase tracking-[0.08em] text-meta">
-                    Title
-                  </span>
-                  <span className="text-right text-sm font-medium text-foreground">
+                  <span className="eyebrow mt-0.5 shrink-0">Title</span>
+                  <span className="text-right text-sm font-medium">
                     {title || "(no title)"}
                   </span>
                 </div>
                 {rq && (
                   <>
-                    <div className="border-t border-[var(--border-soft)]" />
+                    <div className="border-t border-soft" />
                     <div className="flex items-start justify-between gap-3">
-                      <span className="shrink-0 text-xs uppercase tracking-[0.08em] text-meta">
+                      <span className="eyebrow mt-0.5 shrink-0">
                         Research question
                       </span>
-                      <span className="text-right text-xs italic text-fg-2">
+                      <span className="text-right text-xs italic text-muted-fg">
                         {rq}
                       </span>
                     </div>
                   </>
                 )}
               </div>
-              <p className="text-xs text-meta">
-                A fresh review starts in the{" "}
-                <span className="font-medium text-foreground">Scoping</span>{" "}
-                phase. Use the phase stepper on the Overview page to advance
-                through Screening → Extraction → Analysis → Writing → Complete.
+              <p className="text-xs text-muted-fg">
+                <span className="font-medium text-fg-2">Defaults:</span> OR · MH ·
+                fixed-effect · 95% CI — change later in Settings.
               </p>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
 
-        {/* ─── Footer: Cancel (text-only) + Back (ring) + Next/Create (pill) ─── */}
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <button
-            type="button"
-            onClick={close}
-            className="btn-press text-sm font-medium text-fg-2 transition-apple hover:text-foreground focus-visible:outline-none"
-          >
+        {/* ─── Footer: Cancel | Back | Next/Create ─── */}
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <button type="button" onClick={close} className="btn-compact btn-ghost">
             Cancel
           </button>
           <div className="flex items-center gap-2">
@@ -403,9 +389,9 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               <button
                 type="button"
                 onClick={back}
-                className="btn-press btn-pill-secondary font-display tracking-display"
+                className="btn-compact btn-secondary"
               >
-                <ArrowLeft className="size-4" />
+                <CaretLeft size={14} weight="bold" />
                 Back
               </button>
             )}
@@ -414,10 +400,10 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                 type="button"
                 onClick={next}
                 disabled={step === 0 && !type}
-                className="btn-press btn-pill font-display tracking-display"
+                className="btn-compact btn-primary"
               >
                 Next
-                <ArrowRight className="size-4" />
+                <CaretRight size={14} weight="bold" />
               </button>
             )}
             {step === 3 && (
@@ -425,9 +411,9 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                 type="button"
                 onClick={finish}
                 disabled={!type || !title.trim()}
-                className="btn-press btn-pill font-display tracking-display"
+                className="btn-compact btn-primary"
               >
-                <Check className="size-4" />
+                <Check size={14} weight="bold" />
                 Create review
               </button>
             )}

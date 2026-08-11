@@ -148,3 +148,41 @@ model PrismaFlow {
   boxes     String  // JSON string of 11-box template
   review    Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 }
+
+// ─── Team & Profile (local-only, single-user, no auth) ──────────────
+// Stored locally so RoB assessments and decisions can be attributed to
+// specific reviewers. Designed for migration to NextAuth later.
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  role        String   @default("reviewer")  // lead_reviewer | reviewer | methodologist | statistician | librarian
+  initials    String   // 2-3 char signature shown next to decisions
+  color       String   @default("#14b8a6")   // hex tag color
+  isCurrentUser Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserProfile {
+  id              String   @id @default("singleton")
+  currentMemberId String?
+  // Display preferences
+  density         String   @default("compact")  // compact | default | dense
+  fontScale       String   @default("medium")   // small | medium | large
+  reduceMotion    Boolean  @default(false)
+  tooltipsEnabled Boolean  @default(true)
+  tooltipsDensity String   @default("detailed") // minimal | detailed
+  // Review defaults
+  defaultEffectMeasure String @default("OR")
+  defaultMethod        String @default("MH")
+  defaultModel         String @default("fixed")
+  defaultConfidence    Float  @default(0.95)
+  decimalPlaces       Int    @default(2)
+  // Backup
+  autoBackupMinutes  Int    @default(15)
+  maxRecentFiles     Int    @default(20)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}

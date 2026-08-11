@@ -2,44 +2,46 @@
 
 // src/components/revkit/welcome-screen.tsx
 //
-// Apple-design-language Welcome screen.
+// Compact redesign — Linear/Vercel dark-first density with teal accent.
 //
-// Design principles applied (per skills/design/design-systems/brand-inspiration/
-// apple/DESIGN.md + tokens.css):
+// Design principles:
+//   • Compact 44px sticky top bar; max-w-5xl content column.
+//   • Hero is `py-10` (NOT 80vh) — single-line H1 at 26px, 2 inline CTAs.
+//   • 3-tile action row at `grid grid-cols-3 gap-3` — accent on New Review.
+//   • 4-feature inline strip — no dividers, just whitespace + tiny icons.
+//   • Library list — single-column compact rows (3-line: title, RQ, badges).
+//   • Empty state — dashed `card-compact` with centered icon.
+//   • Footer — one-line `text-xs text-meta` centered.
 //
-//   • Pure white hero canvas (no gradient) — Apple's billboard chapter is white.
-//   • SF Pro Display headings with -0.015em tracking; 17px body baseline.
-//   • Single Apple Action Blue accent (#0071e3) reserved for the primary CTA
-//     card's icon tile, the hero pill, the eyebrow labels, and the saved-review
-//     list tile. Secondary cards walk down to neutral text-fg-2.
-//   • 18px card radius (Apple --radius-lg); 980px capsule CTA (--radius-pill).
-//   • Restraint: no shadow on chrome by default — `card-apple` lifts the
-//     0_12px_32px_rgba(0,0,0,0.08) raised shadow ONLY on hover.
-//   • Motion: cubic-bezier(0.28, 0, 0.22, 1) — `.transition-apple` everywhere.
-//   • Focus halo: `.focus-halo` (4px blue glow ring) on every interactive
-//     element.
+// Phosphor icons are used throughout. Note: this installed version of
+// @phosphor-icons/react (v2.1.10) does NOT export the bare names
+// `Activity`, `Layers`, `Settings2`, `Trash2`, `ChevronLeft`, `ChevronRight`,
+// `Sparkles`, or `FlaskConical`. We use closest visual equivalents:
+//   Activity → Pulse · Layers → Stack · Settings2 → Gear · Trash2 → Trash
+//   Sparkles → Sparkle · FlaskConical → Flask
+//   ChevronLeft/Right → CaretLeft/CaretRight (wizard only)
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  FilePlus2,
+  Plus,
   FolderOpen,
-  Trash2,
-  Activity,
-  Microscope,
-  FlaskConical,
-  Layers,
-  Settings2,
-  ArrowRight,
-  BarChart3,
-  ShieldCheck,
+  Trash,
   FileText,
-  BookOpen,
-} from "lucide-react";
+  Sparkle,
+  ChartBar,
+  ShieldCheck,
+  Stack,
+  Export,
+  Microscope,
+  Flask,
+  Gear,
+  Pulse,
+} from "@phosphor-icons/react";
 import { RevKitLogo } from "@/components/revkit/icons";
 import { NewReviewWizard } from "@/components/revkit/new-review-wizard";
+import { ThemeToggle } from "@/components/revkit/theme-toggle";
 import type { ReviewType } from "@/lib/types";
 import { removeRecentFile } from "@/lib/project/id";
 
@@ -50,11 +52,11 @@ interface Props {
 }
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
-  INTERVENTION: Activity,
+  INTERVENTION: Pulse,
   DTA: Microscope,
-  METHODOLOGY: FlaskConical,
-  OVERVIEW: Layers,
-  FLEXIBLE: Settings2,
+  METHODOLOGY: Flask,
+  OVERVIEW: Stack,
+  FLEXIBLE: Gear,
 };
 
 interface SavedReviewMeta {
@@ -69,10 +71,10 @@ interface SavedReviewMeta {
 }
 
 const FEATURES = [
-  { icon: BarChart3, label: "Meta-analysis engine", desc: "MH · Peto · IV · DL" },
+  { icon: ChartBar, label: "Meta-analysis engine", desc: "MH · Peto · IV · DL" },
   { icon: ShieldCheck, label: "Risk of bias", desc: "RoB 2 · ROBINS-I · QUADAS-2" },
-  { icon: Layers, label: "PRISMA 2020", desc: "11-box flow editor" },
-  { icon: FileText, label: "Exports", desc: "Word · CSV · PNG · SVG" },
+  { icon: Stack, label: "PRISMA 2020", desc: "11-box flow editor" },
+  { icon: Export, label: "Exports", desc: "Word · CSV · PNG · SVG" },
 ] as const;
 
 export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
@@ -83,7 +85,9 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
   useEffect(() => {
     let cancelled = false;
     const ctrl = new AbortController();
-    // Initial loading flag is already true; we only flip it after fetch settles.
+    // setState calls happen inside async .then/.catch callbacks (NOT in the
+    // effect body itself), so we avoid the react-hooks/set-state-in-effect
+    // lint warning that fires for synchronous setState in effect bodies.
     fetch("/api/reviews", { signal: ctrl.signal })
       .then((r) => r.json())
       .then((data: { reviews?: SavedReviewMeta[] }) => {
@@ -132,200 +136,169 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* ── Slim sticky Apple-style header ──────────────────────────────────
-         Hairline border-soft (not the heavier --border) so the chrome recedes
-         against the white hero canvas. Backdrop blur keeps content legible
-         under scroll. */}
-      <header className="border-b border-border-soft bg-background/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <RevKitLogo className="size-7" />
-            <div>
-              <div className="text-base font-semibold leading-none tracking-display">
-                RevKit
-              </div>
-              <div className="text-[11px] text-meta uppercase tracking-[0.08em] mt-1">
-                Modern RevMan clone
-              </div>
-            </div>
+      {/* ── Sticky top bar (44px) ───────────────────────────────────────────
+         Hairline border-b, surface tinted with backdrop blur so content
+         remains legible under scroll. Logo + wordmark left, ThemeToggle
+         right. */}
+      <header className="sticky top-0 z-10 h-11 border-b border-border bg-surface/80 backdrop-blur">
+        <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <RevKitLogo className="size-6" />
+            <span className="text-md font-semibold tracking-display">RevKit</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[11px] text-meta uppercase tracking-[0.08em] hidden sm:inline">
+          <div className="flex items-center gap-3">
+            <span className="hidden text-xs uppercase tracking-[0.04em] text-meta sm:inline">
               v0.1.0 · MIT
             </span>
-            <a
-              href="https://www.cochrane.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-link hidden md:inline-flex items-center gap-1.5 focus-halo rounded-md transition-apple"
-            >
-              <BookOpen className="size-3.5" />
-              Cochrane handbook
-            </a>
+            <ThemeToggle />
           </div>
         </div>
       </header>
 
-      {/* ── Hero — Apple billboard ──────────────────────────────────────────
-         Pure white canvas, py-20/md:py-32 (~Apple --section-y-desktop: 100px).
-         Centered max-w-3xl column with eyebrow → 5xl/6xl display head → lead →
-         primary + secondary capsule CTAs. */}
-      <section className="px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-        {/* Hero entrance — CSS-only .enter-rise (400ms ease-standard) replaces the
-            prior framer-motion initial/animate pair. Less JS, off the main thread,
-            interruptible. Per Emil: "Use CSS transitions over keyframes for
-            interruptible UI." */}
-        <div className="enter-rise max-w-3xl mx-auto text-center">
-          <div className="eyebrow mb-5">
-            Open-Source · Cochrane-Style Systematic Reviews
-          </div>
-          <h1 className="text-5xl md:text-6xl font-semibold tracking-display leading-[1.07] mb-6">
-            Build systematic reviews
-            <br className="hidden sm:block" /> with statistical rigor.
+      {/* ── Hero — compact, py-10 (40px top/bottom) ──────────────────────── */}
+      <section className="px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mx-auto max-w-5xl enter-pop">
+          <div className="eyebrow mb-3">Open-Source · Cochrane-Style</div>
+          <h1 className="text-2xl font-semibold tracking-display leading-tight">
+            Build systematic reviews with rigor.
           </h1>
-          <p className="text-xl text-fg-2 tracking-body leading-relaxed max-w-2xl mx-auto mb-10">
-            RevKit supports all five Cochrane review types — Intervention, DTA,
-            Methodology, Overview, and Flexible — with meta-analysis, risk-of-bias,
-            PRISMA flow, and Word export. All in your browser.
+          <p className="mt-2 max-w-[640px] text-sm text-muted-fg leading-relaxed">
+            All five review types. Meta-analysis, RoB, PRISMA flow, exports. Free.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
-              className="btn-pill btn-press focus-halo transition-apple"
+              className="btn-compact btn-primary"
             >
-              <FilePlus2 className="size-4" />
+              <Plus size={14} weight="bold" />
               Create new review
             </button>
-            <button
-              type="button"
-              onClick={scrollToLibrary}
-              className="btn-pill btn-pill-secondary btn-press focus-halo transition-apple"
-            >
-              Browse library
-              <ArrowRight className="size-4" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Action cards row — Apple tile cards ─────────────────────────────
-         Three .card-apple tiles at p-8, hover -translate-y-0.5 + raised
-         shadow. Apple Action Blue accent ONLY on the primary CTA card; the
-         Open and Demo tiles walk down to text-fg-2 on a --surface-apple
-         background so the eye stays on the blue action. */}
-      <section className="px-4 sm:px-6 lg:px-8 pb-16 md:pb-20">
-        <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-4">
-          {/* Primary CTA — New Review.
-              .stagger-item applies the 50ms-stepped entrance (0/50/100ms) —
-              decorative only, never blocks interaction per Emil's gate. */}
-          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
-            <div className="eyebrow mb-4">Recommended</div>
-            <div className="size-11 rounded-lg bg-[#0071e3] text-white flex items-center justify-center mb-5">
-              <FilePlus2 className="size-5" />
-            </div>
-            <h3 className="text-xl font-semibold tracking-display mb-2">New Review</h3>
-            <p className="text-sm text-fg-2 tracking-body leading-relaxed mb-6 line-clamp-2">
-              Start a new systematic review with the 4-step wizard.
-            </p>
-            <button
-              type="button"
-              onClick={() => setWizardOpen(true)}
-              className="btn-pill btn-press focus-halo w-full transition-apple mt-auto"
-            >
-              <FilePlus2 className="size-4" />
-              Create new review
-            </button>
-          </div>
-
-          {/* Open Saved Review */}
-          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
-            <div className="eyebrow mb-4 text-meta">Your library</div>
-            <div className="size-11 rounded-lg bg-surface-apple text-fg-2 flex items-center justify-center mb-5">
-              <FolderOpen className="size-5" />
-            </div>
-            <h3 className="text-xl font-semibold tracking-display mb-2">Open Saved Review</h3>
-            <p className="text-sm text-fg-2 tracking-body leading-relaxed mb-6 line-clamp-2">
-              Pick a review from your library below.
-            </p>
-            <button
-              type="button"
-              onClick={scrollToLibrary}
-              className="btn-pill btn-pill-secondary btn-press focus-halo w-full transition-apple mt-auto"
-            >
-              Browse library
-              <ArrowRight className="size-4" />
-            </button>
-          </div>
-
-          {/* Demo */}
-          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
-            <div className="eyebrow mb-4 text-meta">Demo</div>
-            <div className="size-11 rounded-lg bg-surface-apple text-fg-2 flex items-center justify-center mb-5">
-              <BarChart3 className="size-5" />
-            </div>
-            <h3 className="text-xl font-semibold tracking-display mb-2">Try a demo review</h3>
-            <p className="text-sm text-fg-2 tracking-body leading-relaxed mb-6 line-clamp-2">
-              See an intervention meta-analysis with sample data pre-loaded.
-            </p>
             <button
               type="button"
               onClick={loadDemo}
-              className="btn-pill btn-pill-secondary btn-press focus-halo w-full transition-apple mt-auto"
+              className="btn-compact btn-secondary"
             >
-              Load demo review
+              <Sparkle size={14} weight="fill" />
+              Load demo
             </button>
           </div>
         </div>
       </section>
 
-      {/* ── Feature highlights — Apple spec strip ───────────────────────────
-         Four small inline cards on the --surface-warm band. No dividers —
-         Apple's strip relies on whitespace, not hairlines. Each tile is just
-         a 32px icon chip + label + 1-line description. */}
-      <section className="band-warm py-16 md:py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
-            {FEATURES.map((f) => (
-              <div key={f.label} className="flex flex-col gap-3">
-                <div className="size-8 rounded-md bg-surface-apple text-fg-2 flex items-center justify-center">
-                  <f.icon className="size-4" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium tracking-display">{f.label}</div>
-                  <div className="text-xs text-meta tracking-body mt-1">{f.desc}</div>
-                </div>
-              </div>
-            ))}
+      {/* ── 3-tile action row ───────────────────────────────────────────────
+         Tile 1 (New Review) carries the teal accent via bg-accent-subtle on
+         the icon tile; tiles 2 and 3 walk down to neutral bg-surface-hover so
+         the eye stays on the primary action. stagger-item applies the 50ms
+         stepped entrance (0/40/80ms). */}
+      <section className="px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-5xl grid-cols-3 gap-3">
+          {/* Tile 1 — New Review (accent) */}
+          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+            <div className="flex size-9 items-center justify-center rounded-md bg-accent-subtle text-accent">
+              <FileText size={18} weight="duotone" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-md font-medium tracking-display">New review</h3>
+              <p className="text-xs text-muted-fg leading-relaxed">
+                Start a new systematic review with the 4-step wizard.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true)}
+              className="btn-compact btn-ghost text-accent mt-auto self-start"
+            >
+              Create
+            </button>
+          </div>
+
+          {/* Tile 2 — Browse library (neutral) */}
+          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+            <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
+              <FolderOpen size={18} weight="duotone" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-md font-medium tracking-display">Browse library</h3>
+              <p className="text-xs text-muted-fg leading-relaxed">
+                Pick a review from your saved library below.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={scrollToLibrary}
+              className="btn-compact btn-ghost mt-auto self-start"
+            >
+              Browse
+            </button>
+          </div>
+
+          {/* Tile 3 — Demo (neutral) */}
+          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+            <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
+              <Sparkle size={18} weight="duotone" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-md font-medium tracking-display">Try a demo</h3>
+              <p className="text-xs text-muted-fg leading-relaxed">
+                Intervention meta-analysis with sample data pre-loaded.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loadDemo}
+              className="btn-compact btn-ghost mt-auto self-start"
+            >
+              Load demo
+            </button>
           </div>
         </div>
       </section>
 
-      {/* ── Saved reviews library ──────────────────────────────────────────
-         Eyebrow header + count, then a 2-up grid of .card-apple review tiles.
-         Each tile carries a size-12 Apple-blue tinted left tile with the
-         review-type icon; on hover the tile fills solid blue and the whole
-         card lifts with a raised shadow. Delete button is invisible until
-         hover (or keyboard focus-visible). */}
-      <section id="recent-saved" className="px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="eyebrow">Your Review Library</div>
-            {saved && saved.length > 0 && (
-              <span className="text-xs text-meta tracking-body">{saved.length} saved</span>
-            )}
+      {/* ── Feature highlights — 4 small inline cards, no dividers ────────
+         Whitespace separates — no hairlines. Tiny 16px Phosphor icon +
+         label + 1-line description. */}
+      <section className="px-4 sm:px-6 lg:px-8 mt-10">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-6 sm:grid-cols-4">
+          {FEATURES.map((f) => (
+            <div key={f.label} className="flex flex-col gap-1.5">
+              <f.icon size={16} weight="duotone" className="text-accent" />
+              <div>
+                <div className="text-sm font-medium tracking-display">{f.label}</div>
+                <div className="mt-0.5 text-xs text-muted-fg">{f.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Library list ───────────────────────────────────────────────────
+         .section-header with eyebrow + count, then single-column compact
+         rows. Each row: type icon tile (size-9, neutral) + title + RQ +
+         tiny badges + date + ghost delete button (visible on hover). */}
+      <section id="recent-saved" className="px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="section-header">
+            <div className="flex items-baseline gap-3">
+              <span className="eyebrow">Your library</span>
+              {saved && saved.length > 0 && (
+                <span className="text-xs tabular text-meta">
+                  {saved.length} saved
+                </span>
+              )}
+            </div>
           </div>
 
           {loading ? (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-lg" />
+                <Skeleton key={i} className="h-14 rounded-md" />
               ))}
             </div>
           ) : saved && saved.length > 0 ? (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2 enter-pop">
               {saved.map((r, idx) => {
-                const Icon = TYPE_ICONS[r.type] ?? FilePlus2;
+                const Icon = TYPE_ICONS[r.type] ?? FileText;
                 return (
                   <div
                     key={r.id}
@@ -338,85 +311,66 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
                         onOpen(r.id);
                       }
                     }}
-                    className={`card-apple btn-press hover-lift p-5 hover:-translate-y-0.5 transition-apple-slow cursor-pointer group focus-halo${idx < 8 ? " stagger-item" : ""}`}
+                    className={`card-compact flex cursor-pointer items-center gap-3 p-3 group${
+                      idx < 4 ? " stagger-item" : ""
+                    }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="size-12 rounded-lg bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center shrink-0 transition-apple group-hover:bg-[#0071e3] group-hover:text-white">
-                        <Icon className="size-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-medium tracking-display truncate">
-                          {r.title}
-                        </h3>
-                        <p className="text-xs text-fg-2 tracking-body truncate mt-1">
-                          {r.researchQuestion || "No research question"}
-                        </p>
-                        <div className="flex items-center gap-2 mt-3 flex-wrap">
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {r.type.toLowerCase()}
-                          </Badge>
-                          {r.subType && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {r.subType.toLowerCase()}
-                            </Badge>
-                          )}
-                          <Badge variant="secondary" className="text-[10px] capitalize">
-                            {r.phase.replace("_", " ")}
-                          </Badge>
-                          <span className="text-[10px] text-meta ml-auto">
-                            {new Date(r.updatedAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Delete review"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(r.id);
-                        }}
-                        className="btn-press text-meta hover:text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-halo rounded-md p-1.5 transition-apple"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-hover text-fg-2">
+                      <Icon size={16} weight="duotone" />
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-md font-medium">{r.title}</div>
+                      <div className="mt-0.5 truncate text-xs text-muted-fg">
+                        {r.researchQuestion || "No research question"}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="badge-tiny badge-neutral capitalize">
+                        {r.type.toLowerCase()}
+                      </span>
+                      {r.subType && (
+                        <span className="badge-tiny badge-neutral capitalize">
+                          {r.subType.toLowerCase()}
+                        </span>
+                      )}
+                      <span className="badge-tiny badge-neutral capitalize">
+                        {r.phase.replace("_", " ")}
+                      </span>
+                    </div>
+                    <span className="w-[70px] shrink-0 text-right text-xs tabular text-meta">
+                      {new Date(r.updatedAt).toLocaleDateString()}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Delete review"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(r.id);
+                      }}
+                      className="btn-compact btn-ghost p-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Trash size={14} />
+                    </button>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <FolderOpen className="size-10 mx-auto text-meta mb-5" />
-              <h3 className="text-base font-medium tracking-display mb-1">
-                No saved reviews yet
-              </h3>
-              <p className="text-sm text-fg-2 tracking-body mb-6 max-w-sm mx-auto">
-                Create your first review using the wizard above, and it&apos;ll appear here.
-              </p>
-              <button
-                type="button"
-                onClick={() => setWizardOpen(true)}
-                className="btn-pill btn-pill-secondary btn-press focus-halo transition-apple"
-              >
-                <FilePlus2 className="size-4" />
-                Create new review
-              </button>
+            <div className="card-compact enter-pop flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center">
+              <FolderOpen size={24} weight="duotone" className="text-meta" />
+              <div className="text-md font-medium">No saved reviews yet</div>
+              <div className="text-xs text-muted-fg">Create your first review above.</div>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── Footer — Apple's minimal hairline-top line ───────────────────────
-         Single centered line of text-meta text, pt-20, hairline border-t.
-         No logo, no social, no decorative elements. */}
-      <footer className="pt-20 pb-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="border-t border-border pt-8 text-center">
-            <p className="text-xs text-meta tracking-body">
-              RevKit is an independent open-source project. Not affiliated with Cochrane.
-              Built on Next.js 16 + Prisma 6 + Tailwind 4 + shadcn/ui.
-            </p>
-          </div>
+      {/* ── Footer — minimal single line ─────────────────────────────────── */}
+      <footer className="py-6">
+        <div className="mx-auto max-w-5xl px-4 text-center">
+          <p className="text-xs text-meta">
+            RevKit · open-source · not affiliated with Cochrane · Next.js + Prisma + Tailwind
+          </p>
         </div>
       </footer>
 
@@ -425,10 +379,9 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         onClose={() => setWizardOpen(false)}
         onCreate={(input) => {
           setWizardOpen(false);
-          // The welcome-screen flow only ever creates top-level reviews —
-          // subType is always null at this entry point. We explicitly narrow
-          // here so the parent's `subType: null` prop type is satisfied
-          // without any cast through `any`.
+          // Welcome-screen flow only ever creates top-level reviews with
+          // subType: null at this entry point — explicit narrowing avoids
+          // a cast through `any`.
           onNew({
             title: input.title,
             type: input.type,

@@ -3,10 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/revkit/theme-provider";
 
-// Inter is the closest Google Fonts substitute for SF Pro Text — the metrics
-// are nearly identical and it shares SF Pro's slightly-condensed lowercase
-// rhythm. The CSS var is wired into --font-geist-sans as the SF Pro fallback.
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "RevKit — Modern RevMan Clone",
   description:
-    "RevKit is an open-source web app for building Cochrane-style systematic reviews. Supports all 5 review types with meta-analysis, risk-of-bias, PRISMA flow, and Word/CSV export.",
+    "RevKit is an open-source web app for building Cochrane-style systematic reviews. Compact, dense, data-first. Supports all 5 review types with meta-analysis, risk-of-bias, PRISMA flow, and Word/CSV export.",
   keywords: ["RevKit", "RevMan", "systematic review", "meta-analysis", "Cochrane", "PRISMA", "RoB 2", "ROBINS-I", "QUADAS-2"],
   authors: [{ name: "RevKit Contributors" }],
   icons: {
@@ -40,22 +38,23 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
-        {/* Sonner toaster — Apple-aligned styling: 18px radius matches
-            --radius-lg, hairline border uses --border, theme=system follows OS
-            dark mode. toastOptions pass-through applies the per-toast style. */}
-        <SonnerToaster
-          richColors
-          position="top-right"
-          theme="system"
-          toastOptions={{
-            style: {
-              borderRadius: "18px",
-              border: "1px solid var(--border)",
-            },
-          }}
-        />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+          <SonnerToaster
+            richColors
+            position="top-right"
+            theme="system"
+            toastOptions={{
+              style: {
+                borderRadius: "8px",
+                border: "1px solid var(--border)",
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );
