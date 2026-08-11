@@ -11,7 +11,7 @@ import { PrismaPage } from "@/components/revkit/prisma-page";
 import { ExportPage } from "@/components/revkit/export-page";
 import { SettingsPage } from "@/components/revkit/settings-page";
 import { useReviewStore } from "@/lib/project/state";
-import { useTeamStore } from "@/lib/team/store";
+import { useTeamStore, DEFAULT_PROFILE } from "@/lib/team/store";
 import type { ReviewType, ReviewSubType } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -39,7 +39,9 @@ export default function Home() {
       .then(([teamData, profileData]) => {
         if (cancelled) return;
         setMembers(teamData.members ?? []);
-        setProfile(profileData.profile ?? null);
+        // NEVER pass null — the store type is UserProfile (non-nullable).
+        // If the API hasn't created the singleton yet, fall back to DEFAULT_PROFILE.
+        setProfile(profileData.profile ?? DEFAULT_PROFILE);
         setLoading(false);
       })
       .catch((err: unknown) => {

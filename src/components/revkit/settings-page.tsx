@@ -1197,12 +1197,28 @@ function TeamSection() {
   );
 }
 
+// ─── Shared loading skeleton (shown when profile hasn't loaded yet) ──────
+
+function ProfileSkeleton() {
+  return (
+    <section className="card-compact p-4">
+      <div className="space-y-3">
+        <div className="h-4 w-32 rounded bg-surface-hover animate-pulse" />
+        <div className="h-8 w-full rounded bg-surface-hover animate-pulse" />
+        <div className="h-8 w-full rounded bg-surface-hover animate-pulse" />
+        <div className="h-8 w-full rounded bg-surface-hover animate-pulse" />
+      </div>
+    </section>
+  );
+}
+
 // ─── Section: Preferences (review defaults) ──────────────────────────────
 
 function PreferencesSection() {
   const profile = useTeamStore((s) => s.profile);
   const saveProfile = useTeamStore((s) => s.saveProfile);
 
+  if (!profile) return <ProfileSkeleton />;
   async function patch(p: Partial<UserProfile>) {
     const next = { ...profile, ...p };
     const ok = await saveProfile(next);
@@ -1358,6 +1374,20 @@ function DisplaySection() {
   const profile = useTeamStore((s) => s.profile);
   const saveProfile = useTeamStore((s) => s.saveProfile);
 
+  // Defensive guard: if profile is null (e.g. API hasn't responded yet or
+  // returned an unexpected shape), show a loading skeleton instead of crashing.
+  if (!profile) {
+    return (
+      <section className="card-compact p-4">
+        <div className="space-y-3">
+          <div className="h-4 w-24 rounded bg-surface-hover animate-pulse" />
+          <div className="h-8 w-full rounded bg-surface-hover animate-pulse" />
+          <div className="h-8 w-full rounded bg-surface-hover animate-pulse" />
+        </div>
+      </section>
+    );
+  }
+
   async function patch(p: Partial<UserProfile>) {
     const next = { ...profile, ...p };
     const ok = await saveProfile(next);
@@ -1471,6 +1501,7 @@ function TooltipsSection() {
   const profile = useTeamStore((s) => s.profile);
   const saveProfile = useTeamStore((s) => s.saveProfile);
 
+  if (!profile) return <ProfileSkeleton />;
   async function patch(p: Partial<UserProfile>) {
     const next = { ...profile, ...p };
     const ok = await saveProfile(next);
@@ -1550,6 +1581,7 @@ function BackupsSection() {
   const profile = useTeamStore((s) => s.profile);
   const saveProfile = useTeamStore((s) => s.saveProfile);
 
+  // Hooks MUST be called before any early return (React rules-of-hooks).
   const [recentCount, setRecentCount] = useState<number>(() =>
     typeof window === "undefined" ? 0 : loadRecentFiles().length,
   );
@@ -1559,6 +1591,9 @@ function BackupsSection() {
   useEffect(() => {
     setRecentCount(loadRecentFiles().length);
   }, []);
+
+  // Now safe to return early if profile hasn't loaded.
+  if (!profile) return <ProfileSkeleton />;
 
   async function patch(p: Partial<UserProfile>) {
     const next = { ...profile, ...p };
@@ -1722,6 +1757,10 @@ function AboutSection() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  // About section can render without profile (it only uses profile for the
+  // "reset preferences" button + a small status line). Guard the parts that
+  // touch profile.
+
   async function resetPreferences() {
     setResetting(true);
     const ok = await saveProfile({ ...DEFAULT_PROFILE });
@@ -1830,13 +1869,15 @@ function AboutSection() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <p className="text-[11px] text-meta">
-        Current profile snapshot: density={" "}
-        <span className="font-mono">{profile.density}</span> · model={" "}
-        <span className="font-mono">{profile.defaultModel}</span> · CI={" "}
-        <span className="font-mono">{profile.defaultConfidence}</span> · decimals={" "}
-        <span className="font-mono">{profile.decimalPlaces}</span>
-      </p>
+      {profile && (
+        <p className="text-[11px] text-meta">
+          Current profile snapshot: density={" "}
+          <span className="font-mono">{profile.density}</span> · model={" "}
+          <span className="font-mono">{profile.defaultModel}</span> · CI={" "}
+          <span className="font-mono">{profile.defaultConfidence}</span> · decimals={" "}
+          <span className="font-mono">{profile.decimalPlaces}</span>
+        </p>
+      )}
     </section>
   );
 }
