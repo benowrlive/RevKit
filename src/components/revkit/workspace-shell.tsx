@@ -60,16 +60,30 @@ interface Props {
   children: React.ReactNode;
 }
 
-const NAV: { id: WorkspaceTab; label: string; icon: React.ElementType; badge?: (r: Review) => React.ReactNode }[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "studies", label: "Studies", icon: Users, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.studies.length}</span> },
-  { id: "references", label: "References", icon: FileText, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.references.length}</span> },
-  { id: "comparisons", label: "Comparisons", icon: GitCompare, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.comparisons.length}</span> },
-  { id: "rob", label: "Risk of Bias", icon: ShieldCheck, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.robAssessments.length}</span> },
-  { id: "prisma", label: "PRISMA Flow", icon: Network },
-  { id: "export", label: "Export", icon: Download },
-  { id: "settings", label: "Settings", icon: SettingsIcon },
+// ─── Workflow stages (the research lifecycle) ─────────────────────────────
+// Maps sidebar tabs to the research workflow. Settings is NOT a workflow
+// stage — it's a tool, accessed from the topbar gear icon.
+const WORKFLOW_STAGES: { id: WorkspaceTab; label: string; short: string; icon: React.ElementType; badge?: (r: Review) => React.ReactNode }[] = [
+  { id: "overview", label: "Overview", short: "Setup", icon: LayoutDashboard },
+  { id: "studies", label: "Studies", short: "Studies", icon: Users, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.studies.length}</span> },
+  { id: "references", label: "Screening", short: "Screen", icon: FileText, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.references.length}</span> },
+  { id: "comparisons", label: "Extraction & Analysis", short: "Extract", icon: GitCompare, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.comparisons.length}</span> },
+  { id: "rob", label: "Risk of Bias", short: "RoB", icon: ShieldCheck, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.robAssessments.length}</span> },
+  { id: "prisma", label: "PRISMA Flow", short: "PRISMA", icon: Network },
+  { id: "export", label: "Export", short: "Export", icon: Download },
 ];
+
+// Map each tab to its position in the workflow (0-indexed). Settings is -1 (not a stage).
+const STAGE_INDEX: Record<WorkspaceTab, number> = {
+  overview: 0,
+  studies: 1,
+  references: 2,
+  comparisons: 3,
+  rob: 4,
+  prisma: 5,
+  export: 6,
+  settings: -1,
+};
 
 export function WorkspaceShell({ active, onTabChange, onExit, children }: Props) {
   const review = useReviewStore((s) => s.review);
@@ -188,6 +202,20 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
             )}
             <UserChip onClick={() => onTabChange("settings")} />
             <ThemeToggle />
+            {/* Settings gear — always visible next to theme toggle (iOS pattern) */}
+            <button
+              type="button"
+              onClick={() => onTabChange("settings")}
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                active === "settings"
+                  ? "bg-accent-subtle text-accent"
+                  : "text-muted-fg hover:text-fg-2 hover:bg-surface-hover"
+              }`}
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={14} />
+            </button>
             <Separator orientation="vertical" className="h-5 hidden sm:block" />
             <Button
               size="sm"
@@ -211,10 +239,13 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
 
       {/* Main: sidebar + content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar — glassmorphism */}
+        {/* Sidebar — glassmorphism + workflow stepper */}
         <aside className="bg-sidebar backdrop-blur-xl backdrop-saturate-150 border-r border-border w-14 sm:w-56 shrink-0 overflow-y-auto scrollbar-thin">
+          {/* Workflow progress indicator at top of sidebar */}
+          <WorkflowStepper activeTab={active} onTabChange={onTabChange} />
+
           <nav className="p-1.5 space-y-0.5">
-            {NAV.map((item) => {
+            {WORKFLOW_STAGES.map((item) => {
               const isActive = active === item.id;
               const Icon = item.icon;
               return (
@@ -345,6 +376,17 @@ function OverviewBody({
         <KpiTile number={outcomeCount} label="Outcomes" />
         <KpiTile number={cmpCount} label="Comparisons" />
       </div>
+
+      {/* ─── What next? — contextual hint based on review state ───────── */}
+      <WhatNextHint
+        studyCount={studyCount}
+        refCount={refCount}
+        includedRef={includedRef}
+        cmpCount={cmpCount}
+        outcomeCount={outcomeCount}
+        robCount={review.robAssessments.length}
+        phase={review.phase}
+      />
 
       {/* Editable fields */}
       <div className="grid sm:grid-cols-2 gap-3">
@@ -538,5 +580,100 @@ function DtaCalculatorButton() {
       </button>
       <DtaCalculatorDialog open={open} onClose={() => setOpen(false)} />
     </>
+  );
+}
+
+// ─── Workflow Stepper (persistent research workflow indicator) ──────────
+
+function WorkflowStepper({ activeTab, onTabChange }: { activeTab: WorkspaceTab; onTabChange: (t: WorkspaceTab) => void }) {
+  const currentIdx = STAGE_INDEX[activeTab];
+  return (
+    <div className="px-2 py-2 border-b border-border hidden sm:block">
+      <div className="eyebrow mb-1.5 text-[9px]">Workflow</div>
+      <div className="flex items-center gap-0.5">
+        {WORKFLOW_STAGES.map((stage, idx) => {
+          const isCurrent = idx === currentIdx;
+          const isPast = idx < currentIdx;
+          const isReachable = true; // All stages are always navigable — the user may want to preview ahead
+          return (
+            <button
+              key={stage.id}
+              onClick={() => isReachable && onTabChange(stage.id)}
+              disabled={!isReachable}
+              className="group relative flex-1"
+              title={stage.label}
+            >
+              {/* Dot */}
+              <div
+                className={`h-1.5 rounded-full transition-colors ${
+                  isCurrent
+                    ? "bg-primary"
+                    : isPast
+                    ? "bg-primary/40"
+                    : "bg-border"
+                }`}
+              />
+              {/* Label below (only on wider sidebar) */}
+              {isCurrent && (
+                <span className="absolute -bottom-3.5 left-0 right-0 text-center text-[8px] text-primary font-medium truncate">
+                  {stage.short}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {/* Extra padding for the active stage label */}
+      <div className="h-3" />
+    </div>
+  );
+}
+
+// ─── What next? — contextual hint card on Overview ────────────────────────
+// Reads the review state and suggests the next logical step.
+// Non-intrusive — a single card with an icon + one-line hint + a
+// "Go to X" button. Hidden when the review is complete.
+
+function WhatNextHint(props: {
+  studyCount: number;
+  refCount: number;
+  includedRef: number;
+  cmpCount: number;
+  outcomeCount: number;
+  robCount: number;
+  phase: string;
+}) {
+  const { studyCount, refCount, includedRef, cmpCount, outcomeCount, robCount, phase } = props;
+
+  // Determine the next step based on review state.
+  let hint: { icon: React.ElementType; text: string; action: string } | null = null;
+
+  if (refCount === 0 && studyCount === 0) {
+    hint = { icon: FileText, text: "Import references from RIS files or add them manually to begin screening.", action: "Go to Screening" };
+  } else if (studyCount === 0 && includedRef === 0) {
+    hint = { icon: FileText, text: "Screen your references — mark them as Include, Exclude, or Maybe.", action: "Go to Screening" };
+  } else if (studyCount === 0 && includedRef > 0) {
+    hint = { icon: Users, text: `${includedRef} reference(s) included — promote them to studies to begin extraction.`, action: "Go to Screening" };
+  } else if (cmpCount === 0) {
+    hint = { icon: GitCompare, text: "Create a comparison and outcome to begin data extraction.", action: "Go to Extraction" };
+  } else if (outcomeCount > 0 && robCount === 0) {
+    hint = { icon: ShieldCheck, text: "Assess risk of bias for your included studies.", action: "Go to Risk of Bias" };
+  } else if (phase !== "complete" && outcomeCount > 0) {
+    hint = { icon: Download, text: "Review looks ready — export to Word or CSV, or build your PRISMA flow.", action: "Go to Export" };
+  }
+
+  if (!hint) return null;
+
+  const Icon = hint.icon;
+  return (
+    <Card className="card-compact p-3 flex items-center gap-3 border-accent/20 bg-accent-subtle/30">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent">
+        <Icon className="size-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="eyebrow mb-0.5">What next?</div>
+        <p className="text-[12px] text-fg-2 leading-snug">{hint.text}</p>
+      </div>
+    </Card>
   );
 }

@@ -143,7 +143,6 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
       <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-10 h-11">
         <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
-            <RevKitLogo className="size-6" />
             <span className="text-md font-semibold tracking-display">RevKit</span>
           </div>
           <div className="flex items-center gap-3">
@@ -168,15 +167,20 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
-              className="btn-compact btn-primary"
+              className="group relative inline-flex h-9 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold tracking-display transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
+                color: "white",
+                boxShadow: "0 2px 8px color-mix(in oklab, var(--primary), transparent 60%), 0 0 0 1px color-mix(in oklab, var(--primary), transparent 80%)",
+              }}
             >
-              <Plus size={14} weight="bold" />
+              <Plus size={16} weight="bold" className="transition-transform group-hover:scale-110" />
               Create new review
             </button>
             <button
               type="button"
               onClick={loadDemo}
-              className="btn-compact btn-secondary"
+              className="btn-compact btn-secondary h-9 px-4 text-[14px]"
             >
               <Sparkle size={14} weight="fill" />
               Load demo
