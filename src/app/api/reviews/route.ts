@@ -139,7 +139,7 @@ export async function loadReviewTree(reviewRow: ReviewRow): Promise<Review> {
         domainJudgements: JSON.parse(a.domainJudgements) as Record<string, Review["robAssessments"][number]["domainJudgements"][string]>,
         signallingAnswers: JSON.parse(a.signallingAnswers) as Record<
           string,
-          "yes" | "no" | "py" | "ni" | "na"
+          "yes" | "no" | "py" | "pn" | "ni" | "na"
         >,
         overallJudgement: (a.overallJudgement ?? null) as Review["robAssessments"][number]["overallJudgement"],
         createdAt: a.createdAt,
@@ -245,15 +245,20 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    // Wipe children and re-write.
-    await db.dataPoint.deleteMany({});
-    await db.subgroup.deleteMany({});
-    await db.outcome.deleteMany({});
-    await db.comparison.deleteMany({ where: { reviewId: id } });
-    await db.robAssessment.deleteMany({});
-    await db.study.deleteMany({ where: { reviewId: id } });
-    await db.reference.deleteMany({ where: { reviewId: id } });
-    await db.prismaFlow.deleteMany({ where: { reviewId: id } });
+    // Wipe THIS review's children and re-write.
+    // CRITICAL: All deletes MUST be scoped by reviewId to avoid wiping
+    // data belonging to OTHER reviews (RB-1 fix, Phase 2A-stabilize).
+    // Comparison + Study cascade to outcomes/subgroups/dataPoints/
+    // robAssessments per the Prisma schema's onDelete: Cascade rules.
+    // RobAssessment has its own reviewId FK so we scope it directly.
+    // Wrap in $transaction so a failure rolls back partial state.
+    await db.$transaction([
+      db.comparison.deleteMany({ where: { reviewId: id } }),
+      db.study.deleteMany({ where: { reviewId: id } }),
+      db.reference.deleteMany({ where: { reviewId: id } }),
+      db.prismaFlow.deleteMany({ where: { reviewId: id } }),
+      db.robAssessment.deleteMany({ where: { reviewId: id } }),
+    ]);
 
     await persistReviewTree(review);
 

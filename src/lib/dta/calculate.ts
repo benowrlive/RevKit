@@ -155,6 +155,14 @@ export function calculateDta(input: DtaInput): DtaResult {
 
   // --- DOR = (TP·TN) / (FP·FN) ---
   // Log-scale SE = √(1/TP + 1/FP + 1/FN + 1/TN).
+  //
+  // Phase 2A-stabilize RB-5 fix: return NAN_METRIC when fp=0 or fn=0.
+  // The previous implementation had dead code that assigned `dor` twice
+  // (the first assignment was overwritten by a CC-substituted value).
+  // Per `docs/REVKIT_FORENSIC_AUDIT.md` §6.1 / Matrix 5 RB-5: when fp=0
+  // OR fn=0, the DOR is mathematically infinite (log(∞) = ∞), and the
+  // SE formula divides by zero. We return NaN rather than a misleading
+  // CC-substituted value.
   let dor: DtaMetric;
   if (fp > 0 && fn > 0) {
     const dorValue = (tp * tn) / (fp * fn);
@@ -163,13 +171,7 @@ export function calculateDta(input: DtaInput): DtaResult {
     );
     dor = logCi(dorValue, dorSe);
   } else {
-    dor = logCi(NaN, NaN);
-    // Even when raw DOR is undefined (zero cells), provide a CC point estimate.
-    const dorCc = (cc.tp * cc.tn) / (cc.fp * cc.fn);
-    const dorSe = Math.sqrt(
-      1 / cc.tp + 1 / cc.fp + 1 / cc.fn + 1 / cc.tn,
-    );
-    dor = logCi(dorCc, dorSe);
+    dor = NAN_METRIC;
   }
 
   return {

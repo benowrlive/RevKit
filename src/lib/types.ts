@@ -164,7 +164,7 @@ export interface RobAssessment {
   studyId: string;
   tool: RobTool;
   domainJudgements: Record<string, RobJudgement>;
-  signallingAnswers: Record<string, "yes" | "no" | "py" | "ni" | "na">;
+  signallingAnswers: Record<string, "yes" | "no" | "py" | "pn" | "ni" | "na">;
   overallJudgement?: RobJudgement | null;
   createdAt: string;
   updatedAt: string;

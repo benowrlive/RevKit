@@ -97,7 +97,8 @@ const STUDY_FILTER_OPTIONS: { value: StudyFilter; label: string }[] = [
 const ANSWER_OPTIONS: { value: RobAnswer; label: string; short: string; Icon: React.ElementType }[] = [
   { value: "yes", label: "Yes", short: "Y", Icon: Check },
   { value: "py", label: "Probably Yes", short: "PY", Icon: Check },
-  { value: "no", label: "No / Probably No", short: "N", Icon: X },
+  { value: "pn", label: "Probably No", short: "PN", Icon: X },
+  { value: "no", label: "No", short: "N", Icon: X },
   { value: "ni", label: "No Info", short: "NI", Icon: HelpCircle },
   { value: "na", label: "N/A", short: "NA", Icon: Ban },
 ];

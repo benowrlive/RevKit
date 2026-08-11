@@ -65,3 +65,6 @@ server.log
 
 # Worklog is project-internal — keep it committed but ignore backups
 worklog.md.bak
+
+# Allow tests/ dir to be committed (vitest + smoke tests live here)
+!tests/

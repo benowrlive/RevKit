@@ -123,13 +123,18 @@ export function oddsRatio(study: DichotomousStudy): Effect {
 /**
  * Risk Difference: RD = a/n1 − c/n2.
  * SE = √(a·(n1−a)/n1³ + c·(n2−c)/n2³).
+ *
+ * Phase 2A-stabilize RB-4 fix: REMOVED `withContinuityCorrection` call.
+ * RD is a difference, not a ratio — it doesn't take logs and doesn't need
+ * continuity correction. The previous code wrongly applied CC (verified bug
+ * per `docs/REVKIT_FORENSIC_AUDIT.md` §6.1 / Matrix 5 RB-4).
  */
 export function riskDifference(study: DichotomousStudy): Effect {
-  const s = withContinuityCorrection(study);
-  const rd = s.a / s.n1 - s.c / s.n2;
+  const { a, c, n1, n2 } = study;
+  const rd = a / n1 - c / n2;
   const se = Math.sqrt(
-    (s.a * (s.n1 - s.a)) / (s.n1 ** 3) +
-      (s.c * (s.n2 - s.c)) / (s.n2 ** 3),
+    (a * (n1 - a)) / (n1 ** 3) +
+      (c * (n2 - c)) / (n2 ** 3),
   );
   return {
     theta: rd,

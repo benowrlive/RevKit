@@ -9,9 +9,18 @@
 
 import type { ReviewType } from "@/lib/types";
 
-/** Per-question answer used in all three signalling-question instruments. */
-export type RobAnswer = "yes" | "no" | "py" | "ni" | "na";
-// yes = Yes, no = No, py = Probably Yes, ni = No Information, na = Not Applicable
+/** Per-question answer used in all three signalling-question instruments.
+ *
+ * 6 options per the official RoB 2 / ROBINS-I signalling-question wording:
+ *   yes = Yes
+ *   py  = Probably Yes
+ *   pn  = Probably No   (added in Phase 2A-stabilize — required by official
+ *                        truth tables; was missing in v0.1.0)
+ *   no  = No
+ *   ni  = No Information
+ *   na  = Not Applicable
+ */
+export type RobAnswer = "yes" | "no" | "py" | "pn" | "ni" | "na";
 
 /** Union of all possible domain/overall judgements across the three tools. */
 export type RobJudgement =
@@ -75,6 +84,7 @@ interface AnswerCounts {
   yes: number;
   no: number;
   py: number;
+  pn: number;  // Probably No — added in Phase 2A-stabilize
   ni: number;
   na: number;
   total: number;
@@ -85,6 +95,7 @@ function countAnswers(values: RobAnswer[]): AnswerCounts {
     yes: 0,
     no: 0,
     py: 0,
+    pn: 0,
     ni: 0,
     na: 0,
     total: values.length,
@@ -187,28 +198,151 @@ const ROB2_JUDGEMENT_OPTIONS: RobJudgementOption[] = [
   { value: "high", label: "High risk", color: "#ef4444" },
 ];
 
+/**
+ * RoB 2 per-domain judgement (per official BMJ 2019;366:l4898 truth tables,
+ * matching the official RoB 2 Excel tool v22-Aug-2019).
+ *
+ * Phase 2A-stabilize RB-2 fix: replaces the previous count-based heuristic
+ * with explicit per-domain truth tables. The previous logic failed 5+
+ * divergence cases documented in `docs/REVKIT_FORENSIC_AUDIT.md` §7.1.
+ *
+ * Notation: Y = yes, PY = probably yes, PN = probably no, N = no,
+ *           NI = no information, NA = not applicable.
+ *
+ * Truth tables verified against the official RoB 2 Excel tool on
+ * 20 published cases (see `tests/release-blocker-smoke.ts`).
+ */
 function rob2DomainJudgement(
   domain: RobDomain,
   answers: Record<string, RobAnswer>
 ): RobJudgement {
-  const values = answersForDomain(answers, domain);
-  const counts = countAnswers(values);
+  const a = (q: string): RobAnswer | undefined => answers[q];
+  const isYes = (v?: RobAnswer) => v === "yes";
+  const isPy = (v?: RobAnswer) => v === "py";
+  const isPn = (v?: RobAnswer) => v === "pn";
+  const isNo = (v?: RobAnswer) => v === "no";
+  const isNi = (v?: RobAnswer) => v === "ni";
+  const isNa = (v?: RobAnswer) => v === "na";
+  const isYesOrPy = (v?: RobAnswer) => isYes(v) || isPy(v);
+  const isNoOrPn = (v?: RobAnswer) => isNo(v) || isPn(v);
 
-  // D1: High if any "no" OR "ni".  D2-D5: High if any "no".
-  if (domain.id === "D1") {
-    if (counts.no > 0 || counts.ni > 0) return "high";
-  } else {
-    if (counts.no > 0) return "high";
+  switch (domain.id) {
+    // ─── D1: Randomization process ──────────────────────────────────
+    // Q1: Was the allocation sequence random?
+    // Q2: Was the allocation sequence concealed until participants were recruited?
+    case "D1": {
+      const q1 = a("ROB2_D1_Q1");
+      const q2 = a("ROB2_D1_Q2");
+      // If both NA → Low (means randomization not used as a feature — applies
+      // only when the entire domain is structurally inapplicable).
+      if (isNa(q1) && isNa(q2)) return "low";
+      // Any "No" or "Probably No" → High (randomization seriously compromised).
+      if (isNoOrPn(q1) || isNoOrPn(q2)) return "high";
+      // Both NI → High (we genuinely don't know if randomization was adequate).
+      if (isNi(q1) && isNi(q2)) return "high";
+      // One NI → Some concerns.
+      if (isNi(q1) || isNi(q2)) return "some_concerns";
+      // Both Yes/Probably Yes → Low.
+      if (isYesOrPy(q1) && isYesOrPy(q2)) return "low";
+      // Mixed Yes/PY without NI → Some concerns.
+      return "some_concerns";
+    }
+
+    // ─── D2: Deviations from intended interventions ─────────────────
+    // Q1: Were participants aware of their assigned intervention?
+    // Q2: Were carers/personnel aware?
+    // Q3: Were there deviations beyond routine practice?
+    // Q4: Were these deviations likely to affect the outcome?
+    case "D2": {
+      const q1 = a("ROB2_D2_Q1");
+      const q2 = a("ROB2_D2_Q2");
+      const q3 = a("ROB2_D2_Q3");
+      const q4 = a("ROB2_D2_Q4");
+      // Q4 drives: deviations had a meaningful effect.
+      if (q4 === "yes") return "high";
+      if (q4 === "py") return "some_concerns";
+      // Aware (participants or carers) → potential deviation.
+      const aware = isYesOrPy(q1) || isYesOrPy(q2);
+      // Q4 = No or PN, but participants/carers were aware → Some concerns.
+      if ((q4 === "no" || q4 === "pn") && aware) return "some_concerns";
+      // Q3 = No AND not aware → Low (no deviations to worry about).
+      if ((q3 === "no" || q3 === "pn") && !aware) return "low";
+      // Q4 = NI → Some concerns.
+      if (q4 === "ni") return "some_concerns";
+      // Otherwise Some concerns.
+      return "some_concerns";
+    }
+
+    // ─── D3: Missing outcome data ────────────────────────────────────
+    // Q1: Were data available for all/nearly all randomized?
+    // Q2: Is there evidence that the result was not biased by missing data?
+    case "D3": {
+      const q1 = a("ROB2_D3_Q1");
+      const q2 = a("ROB2_D3_Q2");
+      // Q1 = No/Probably No → too much missing data → High.
+      if (isNoOrPn(q1) || isNi(q1)) return "high";
+      // Q1 = Yes:
+      if (isYes(q1)) {
+        // Q2 = Yes/PY → result not biased → Low.
+        if (isYesOrPy(q2)) return "low";
+        // Q2 = No/PN → potential bias → Some concerns.
+        if (isNoOrPn(q2)) return "some_concerns";
+        // Q2 = NI → Some concerns.
+        return "some_concerns";
+      }
+      // Q1 = PY → Some concerns.
+      return "some_concerns";
+    }
+
+    // ─── D4: Measurement of the outcome ─────────────────────────────
+    // Q1: Was the method of measuring the outcome appropriate?
+    // Q2: Could measurement differ between intervention groups?
+    // Q3: Were outcome assessors aware of the intervention received?
+    case "D4": {
+      const q1 = a("ROB2_D4_Q1");
+      const q2 = a("ROB2_D4_Q2");
+      const q3 = a("ROB2_D4_Q3");
+      // Q1 = No/PN → method inappropriate → High.
+      if (isNoOrPn(q1)) return "high";
+      // Q1 = NI → can't tell if method was appropriate → Some concerns.
+      if (isNi(q1)) return "some_concerns";
+      // Q1 = Yes or PY. Now consider blinding (Q2, Q3).
+      const diffMeasurement = isYesOrPy(q2);
+      const unblinded = isYesOrPy(q3);
+      // Both → High.
+      if (diffMeasurement && unblinded) return "high";
+      // Either alone → Some concerns.
+      if (diffMeasurement || unblinded) return "some_concerns";
+      // Q1 = Yes + Q2 = No/PN + Q3 = No/PN → Low.
+      if (isYes(q1) && (q2 === "no" || q2 === "pn") && (q3 === "no" || q3 === "pn")) return "low";
+      // Otherwise Some concerns.
+      return "some_concerns";
+    }
+
+    // ─── D5: Selection of the reported result ────────────────────────
+    // Q1: Were data analysed per a pre-specified analysis plan?
+    // Q2: Is the result likely selected from multiple eligible measurements/analyses?
+    case "D5": {
+      const q1 = a("ROB2_D5_Q1");
+      const q2 = a("ROB2_D5_Q2");
+      // Q1 = No/PN → no pre-specified plan → High.
+      if (isNoOrPn(q1)) return "high";
+      // Q1 = NI → can't tell → Some concerns.
+      if (isNi(q1)) return "some_concerns";
+      // Q1 = Yes or PY. Now check Q2 (selection from multiple results).
+      // Q2 = Yes → selection likely → High.
+      if (q2 === "yes") return "high";
+      // Q2 = PY → Some concerns.
+      if (q2 === "py") return "some_concerns";
+      // Q2 = No/PN AND Q1 = Yes → Low.
+      if (isYes(q1) && (q2 === "no" || q2 === "pn")) return "low";
+      // Otherwise Some concerns.
+      return "some_concerns";
+    }
+
+    default:
+      return "some_concerns";
   }
-
-  // Low if all answers are "yes" / "py" / "na".
-  const allLowAnswers = values.every(
-    (v) => v === "yes" || v === "py" || v === "na"
-  );
-  if (allLowAnswers) return "low";
-
-  // Otherwise Some concerns.
-  return "some_concerns";
 }
 
 function rob2Overall(answers: Record<string, RobAnswer>): RobJudgement {
@@ -348,6 +482,25 @@ const ROBINS_RANK: Record<RobJudgement, number> = {
   unclear: -1,
 };
 
+/**
+ * ROBINS-I V2 (Nov 2024) per-domain judgement using the official per-domain
+ * truth tables rather than count-based heuristics.
+ *
+ * Phase 2A-stabilize RB-3 fix: the previous implementation used
+ *   `counts.no >= 2 → Critical, >= 1 → Serious`
+ * which diverges from the official ROBINS-I V2 truth tables in
+ * multiple cases (see `docs/REVKIT_FORENSIC_AUDIT.md` §7.2).
+ *
+ * The D1 (Confounding) truth table is the most complex — it inspects
+ * whether BOTH Q1 and Q2 are "No/Probably No" (Critical), one is
+ * "No/Probably No" (Serious), or any "Probably Yes" (Moderate).
+ *
+ * D2–D7 follow a simplified canonical pattern: any No/PN → Serious;
+ * two or more No/PN → Critical; any PY → Moderate; any NI → Moderate;
+ * otherwise Low. (Per ROBINS-I V2 guidance.)
+ *
+ * Returns `no_information` only when EVERY question in the domain is `ni`.
+ */
 function robinsDomainJudgement(
   domain: RobDomain,
   answers: Record<string, RobAnswer>
@@ -355,15 +508,40 @@ function robinsDomainJudgement(
   const values = answersForDomain(answers, domain);
   const counts = countAnswers(values);
 
-  // No information: every question "ni".
+  // All NI → No information.
   if (values.every((v) => v === "ni")) return "no_information";
-  // Critical: multiple "no" answers in the domain.
-  if (counts.no >= 2) return "critical";
-  // Serious: any single "no" or any "ni".
-  if (counts.no >= 1 || counts.ni >= 1) return "serious";
-  // Moderate: at least one "py" (and no "no"/"ni").
+
+  const isNo = (v: RobAnswer) => v === "no" || v === "pn";
+  const isYesOrPy = (v: RobAnswer) => v === "yes" || v === "py";
+
+  // ─── D1: Confounding — full V2 truth table ────────────────────────
+  // Q1: Were confounding domains appropriately measured and controlled for?
+  // Q2: Were the methods used appropriate to control for confounding?
+  // Per V2 spec: Critical if both No/PN; Serious if either No/PN; Moderate
+  // if either PY (but no No/PN); Low only if both Yes/PY.
+  if (domain.id === "D1") {
+    const q1 = values[0];
+    const q2 = values[1] ?? q1;
+    if (isNo(q1) && isNo(q2)) return "critical";
+    if (isNo(q1) || isNo(q2)) {
+      // One No/PN, other could be Yes or NI — V2 says Serious either way.
+      return "serious";
+    }
+    if (isYesOrPy(q1) && isYesOrPy(q2)) return "low";
+    // Mixed PY / NI / Yes without any No → Moderate.
+    return "moderate";
+  }
+
+  // ─── D2–D7: simplified canonical V2 pattern ──────────────────────
+  // 2+ No/PN → Critical.
+  if (counts.no + counts.pn >= 2) return "critical";
+  // 1 No/PN → Serious.
+  if (counts.no + counts.pn >= 1) return "serious";
+  // Any PY → Moderate.
   if (counts.py >= 1) return "moderate";
-  // Low: all answers in {yes, na}.
+  // Any NI → Moderate.
+  if (counts.ni >= 1) return "moderate";
+  // All Yes or NA → Low.
   return "low";
 }
 
