@@ -183,63 +183,86 @@
   --container-gutter: 16px;
 }
 
-/* ─── LIGHT MODE (switched via .light class) ─────────────────────── */
+/* ─── LIGHT MODE (switched via .light class) ───────────────────────────────
+ * Uses a soft gradient background derived from the RevKit logo colors:
+ *   #0B2C5B (Deep Navy)  → #0072CE (Royal Blue) → #00A86B (Teal) → #E8F4FC (Ice)
+ * The gradient is subtle enough for readability but visible enough to
+ * make glassmorphism (backdrop-blur + translucent cards) pop. */
 .light {
-  --background: #ffffff;
-  --surface: #fafafa;
-  --surface-raised: #ffffff;
-  --surface-hover: #f4f4f5;
+  /* Gradient background — applied on body, not :root vars.
+   * Uses the RevKit logo colors: #0B2C5B navy → #0072CE blue → #00A86B teal.
+   * Stronger saturation so glassmorphism is visible through translucent cards. */
+  --bg-gradient: linear-gradient(
+    135deg,
+    #d0e8f5 0%,          /* soft blue */
+    #c0d8f0 15%,         /* medium blue */
+    #b8d4ec 30%,          /* blue-teal blend */
+    #c8e0d8 50%,         /* teal tint */
+    #d4ece4 70%,         /* mint */
+    #e0f0ec 100%          /* near-white */
+  );
 
-  --foreground: #18181b;
-  --foreground-2: #3f3f46;
-  --muted-foreground: #71717a;
-  --meta: #a1a1aa;
+  --background: #f8fcfb;       /* base surface — slightly tinted */
+  --surface: rgba(255, 255, 255, 0.55);  /* more translucent for glass */
+  --surface-raised: rgba(255, 255, 255, 0.7);
+  --surface-hover: rgba(255, 255, 255, 0.45);
 
-  --border: #e4e4e7;
-  --border-soft: #f4f4f5;
-  --input: #e4e4e7;
-  --ring: #0d9488;
+  --foreground: #0B2C5B;       /* deep navy from logo */
+  --foreground-2: #1e3a5f;
+  --muted-foreground: #4a6b8a;
+  --meta: #7a92a8;
 
-  --primary: #0d9488;
+  --border: rgba(11, 44, 91, 0.12);    /* navy-tinted hairline */
+  --border-soft: rgba(11, 44, 91, 0.06);
+  --input: rgba(11, 44, 91, 0.15);
+  --ring: #0072CE;                   /* royal blue from logo */
+
+  --primary: #0072CE;               /* royal blue from logo "K" */
   --primary-foreground: #ffffff;
-  --accent: #0d9488;
+  --accent: #00A86B;               /* teal/green from logo "it" */
   --accent-foreground: #ffffff;
-  --accent-hover: #0f766e;
-  --accent-active: #115e59;
-  --accent-subtle: rgba(13, 148, 136, 0.08);
+  --accent-hover: #00c478;
+  --accent-active: #008f5a;
+  --accent-subtle: rgba(0, 168, 107, 0.08);
 
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
+  --secondary: rgba(255, 255, 255, 0.5);
+  --secondary-foreground: #0B2C5B;
 
-  --card: #ffffff;
-  --card-foreground: #18181b;
-  --popover: #ffffff;
-  --popover-foreground: #18181b;
+  --card: rgba(255, 255, 255, 0.55);  /* more translucent — glass visible */
+  --card-foreground: #0B2C5B;
+  --popover: rgba(255, 255, 255, 0.9);
+  --popover-foreground: #0B2C5B;
 
-  --muted: #f4f4f5;
+  --muted: rgba(255, 255, 255, 0.4);
 
   --destructive: #e11d48;
-  --success: #059669;
+  --success: #00A86B;              /* matches logo teal */
   --warning: #d97706;
-  --info: #2563eb;
+  --info: #0072CE;               /* matches logo blue */
 
-  --chart-1: #0d9488;
-  --chart-2: #4f46e5;
-  --chart-3: #d97706;
-  --chart-4: #db2777;
-  --chart-5: #65a30d;
+  --chart-1: #0072CE;
+  --chart-2: #00A86B;
+  --chart-3: #0B2C5B;
+  --chart-4: #ec4899;
+  --chart-5: #84cc16;
 
-  --sidebar: #fafafa;
-  --sidebar-foreground: #3f3f46;
-  --sidebar-primary: #0d9488;
+  --sidebar: rgba(255, 255, 255, 0.55);   /* glass sidebar */
+  --sidebar-foreground: #1e3a5f;
+  --sidebar-primary: #0072CE;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #0d9488;
+  --sidebar-accent: rgba(0, 114, 206, 0.06);
+  --sidebar-accent-foreground: #0B2C5B;
+  --sidebar-border: rgba(11, 44, 91, 0.08);
+  --sidebar-ring: #0072CE;
 
-  --elev-raised: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
-  --elev-overlay: 0 8px 32px rgba(0,0,0,0.1);
+  /* Glass elevation — stronger shadows for floating glass panels */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px rgba(11, 44, 91, 0.1);
+  --elev-raised: 0 2px 8px rgba(11, 44, 91, 0.08), 0 8px 24px rgba(11, 44, 91, 0.06);
+  --elev-overlay: 0 12px 40px rgba(11, 44, 91, 0.12), 0 4px 12px rgba(11, 44, 91, 0.08);
+
+  /* Focus ring — royal blue halo */
+  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
 }
 
 @layer base {
@@ -263,6 +286,13 @@
     letter-spacing: var(--tracking-body);
     font-feature-settings: "kern", "liga", "calt", "tnum"; /* tabular nums for tables */
     background-color: var(--background);
+  }
+
+  /* Light mode: apply the soft gradient background from the RevKit logo colors */
+  .light body {
+    background: var(--bg-gradient, linear-gradient(135deg, #e8f4fc 0%, #d4ede8 50%, #f0faf7 100%));
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 
   /* Headings — Inter, slightly tighter */
@@ -295,9 +325,68 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); background-clip: content-box; }
 }
 
+/* ─── Glassmorphism utilities (OUTSIDE @layer to beat Tailwind's specificity) ──
+ * These create the frosted-glass card / panel effect against the
+ * gradient background. Must be outside @layer components so
+ * backdrop-filter isn't overridden by Tailwind's reset.
+ *
+ * For the true Apple "Liquid Glass" effect (with refraction + edge
+ * bending), use the <LiquidGlass> component from liquid-glass-react
+ * on specific elements (hero cards, buttons). These CSS utilities
+ * are for the broader glass panel styling that doesn't need the
+ * heavy SVG displacement filter. */
+
+.glass-panel {
+  background: var(--card) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-raised);
+  transition: box-shadow var(--motion-base) var(--ease-standard);
+}
+.glass-panel:hover {
+  box-shadow: var(--elev-overlay);
+}
+
+.glass-sidebar {
+  background: var(--sidebar) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border-right: 1px solid var(--border);
+}
+
+.glass-topbar {
+  background: var(--surface) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.light .glass-input {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.glass-hover {
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    background var(--motion-base) var(--ease-standard);
+}
+.glass-hover:hover {
+  transform: translateY(-2px);
+  background: var(--surface-raised) !important;
+  box-shadow: var(--elev-overlay);
+}
+
 @layer components {
-  /* ─── Compact button — the workhorse CTA ───
-   * 6/10px padding, 8px radius, 12px text. Snappy 100ms transitions. */
   .btn-compact {
     display: inline-flex;
     align-items: center;

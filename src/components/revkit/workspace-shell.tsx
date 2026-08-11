@@ -143,8 +143,8 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Top bar — compact 44px */}
-      <header className="border-b border-border bg-surface/80 backdrop-blur-xl sticky top-0 z-30">
+      {/* Top bar — compact 44px, glassmorphism */}
+      <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-30">
         <div className="flex h-11 items-center justify-between px-3 sm:px-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -211,8 +211,8 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
 
       {/* Main: sidebar + content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar — 220px, compacts to icons on small screens */}
-        <aside className="w-14 sm:w-56 border-r border-border bg-sidebar shrink-0 overflow-y-auto scrollbar-thin">
+        {/* Sidebar — glassmorphism */}
+        <aside className="bg-sidebar backdrop-blur-xl backdrop-saturate-150 border-r border-border w-14 sm:w-56 shrink-0 overflow-y-auto scrollbar-thin">
           <nav className="p-1.5 space-y-0.5">
             {NAV.map((item) => {
               const isActive = active === item.id;

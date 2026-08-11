@@ -135,12 +135,12 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       {/* ── Sticky top bar (44px) ───────────────────────────────────────────
          Hairline border-b, surface tinted with backdrop blur so content
          remains legible under scroll. Logo + wordmark left, ThemeToggle
          right. */}
-      <header className="sticky top-0 z-10 h-11 border-b border-border bg-surface/80 backdrop-blur">
+      <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-10 h-11">
         <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <RevKitLogo className="size-6" />
@@ -194,7 +194,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
       <section className="px-4 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-5xl grid-cols-3 gap-3">
           {/* Tile 1 — New Review (accent) */}
-          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
             <div className="flex size-9 items-center justify-center rounded-md bg-accent-subtle text-accent">
               <FileText size={18} weight="duotone" />
             </div>
@@ -214,7 +214,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
           </div>
 
           {/* Tile 2 — Browse library (neutral) */}
-          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
             <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
               <FolderOpen size={18} weight="duotone" />
             </div>
@@ -234,7 +234,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
           </div>
 
           {/* Tile 3 — Demo (neutral) */}
-          <div className="card-compact stagger-item flex flex-col gap-3 p-4">
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
             <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
               <Sparkle size={18} weight="duotone" />
             </div>
@@ -311,7 +311,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
                         onOpen(r.id);
                       }
                     }}
-                    className={`card-compact flex cursor-pointer items-center gap-3 p-3 group${
+                    className={`bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg flex cursor-pointer items-center gap-3 p-3 group${
                       idx < 4 ? " stagger-item" : ""
                     }`}
                   >
@@ -356,7 +356,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
               })}
             </div>
           ) : (
-            <div className="card-compact enter-pop flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center">
+            <div className="bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg enter-pop flex flex-col items-center justify-center gap-2 border-dashed p-6 text-center">
               <FolderOpen size={24} weight="duotone" className="text-meta" />
               <div className="text-md font-medium">No saved reviews yet</div>
               <div className="text-xs text-muted-fg">Create your first review above.</div>
