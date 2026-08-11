@@ -1,12 +1,13 @@
 // RevKit Prisma schema — adapted from master prompt §8
-// SQLite-backed persistence for reviews.
+// PostgreSQL-backed persistence for reviews (Vercel/Neon compatible).
+// For local dev, set DATABASE_URL to a local Postgres or Neon connection string.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

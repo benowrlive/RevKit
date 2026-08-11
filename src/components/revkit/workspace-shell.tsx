@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import {
   FilePlus2,
   CheckCircle2,
   CircleDot,
+  Calculator,
 } from "lucide-react";
 import { useReviewStore } from "@/lib/project/state";
 import {
@@ -40,6 +41,7 @@ import { addRecentFile } from "@/lib/project/id";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/revkit/theme-toggle";
 import { UserChip } from "@/components/revkit/user-chip";
+import { DtaCalculatorDialog } from "@/components/dta/calculator-dialog";
 
 export type WorkspaceTab =
   | "overview"
@@ -180,6 +182,10 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* DTA Calculator — standalone tool, shown only for DTA reviews (spec §9) */}
+            {review.type === "DTA" && (
+              <DtaCalculatorButton />
+            )}
             <UserChip onClick={() => onTabChange("settings")} />
             <ThemeToggle />
             <Separator orientation="vertical" className="h-5 hidden sm:block" />
@@ -509,5 +515,28 @@ function DemoDataLoader() {
         </div>
       </div>
     </Card>
+  );
+}
+
+// ─── DTA Calculator button (standalone, shown only for DTA reviews) ──────
+// Per spec §9: "Available in two places: 1. Standalone — from sidebar of
+// any DTA review. 2. Per-study — calculator icon on each DTA data row."
+// The per-study button is in DataGrid; this is the standalone one.
+
+function DtaCalculatorButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="btn-compact btn-secondary h-7 px-2.5 text-[12px] gap-1.5"
+        title="Open DTA 2×2 calculator"
+      >
+        <Calculator size={14} />
+        <span className="hidden sm:inline">Calculator</span>
+      </button>
+      <DtaCalculatorDialog open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }
