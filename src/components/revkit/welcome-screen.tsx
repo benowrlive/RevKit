@@ -20,7 +20,6 @@
 //     element.
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -172,12 +171,11 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
          Centered max-w-3xl column with eyebrow → 5xl/6xl display head → lead →
          primary + secondary capsule CTAs. */}
       <section className="px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.28, 0, 0.22, 1] }}
-          className="max-w-3xl mx-auto text-center"
-        >
+        {/* Hero entrance — CSS-only .enter-rise (400ms ease-standard) replaces the
+            prior framer-motion initial/animate pair. Less JS, off the main thread,
+            interruptible. Per Emil: "Use CSS transitions over keyframes for
+            interruptible UI." */}
+        <div className="enter-rise max-w-3xl mx-auto text-center">
           <div className="eyebrow mb-5">
             Open-Source · Cochrane-Style Systematic Reviews
           </div>
@@ -194,7 +192,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
-              className="btn-pill focus-halo transition-apple"
+              className="btn-pill btn-press focus-halo transition-apple"
             >
               <FilePlus2 className="size-4" />
               Create new review
@@ -202,13 +200,13 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={scrollToLibrary}
-              className="btn-pill btn-pill-secondary focus-halo transition-apple"
+              className="btn-pill btn-pill-secondary btn-press focus-halo transition-apple"
             >
               Browse library
               <ArrowRight className="size-4" />
             </button>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* ── Action cards row — Apple tile cards ─────────────────────────────
@@ -218,8 +216,10 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
          background so the eye stays on the blue action. */}
       <section className="px-4 sm:px-6 lg:px-8 pb-16 md:pb-20">
         <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-4">
-          {/* Primary CTA — New Review */}
-          <div className="card-apple p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
+          {/* Primary CTA — New Review.
+              .stagger-item applies the 50ms-stepped entrance (0/50/100ms) —
+              decorative only, never blocks interaction per Emil's gate. */}
+          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
             <div className="eyebrow mb-4">Recommended</div>
             <div className="size-11 rounded-lg bg-[#0071e3] text-white flex items-center justify-center mb-5">
               <FilePlus2 className="size-5" />
@@ -231,7 +231,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
-              className="btn-pill focus-halo w-full transition-apple mt-auto"
+              className="btn-pill btn-press focus-halo w-full transition-apple mt-auto"
             >
               <FilePlus2 className="size-4" />
               Create new review
@@ -239,7 +239,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
           </div>
 
           {/* Open Saved Review */}
-          <div className="card-apple p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
+          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
             <div className="eyebrow mb-4 text-meta">Your library</div>
             <div className="size-11 rounded-lg bg-surface-apple text-fg-2 flex items-center justify-center mb-5">
               <FolderOpen className="size-5" />
@@ -251,7 +251,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={scrollToLibrary}
-              className="btn-pill btn-pill-secondary focus-halo w-full transition-apple mt-auto"
+              className="btn-pill btn-pill-secondary btn-press focus-halo w-full transition-apple mt-auto"
             >
               Browse library
               <ArrowRight className="size-4" />
@@ -259,7 +259,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
           </div>
 
           {/* Demo */}
-          <div className="card-apple p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
+          <div className="card-apple stagger-item p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">
             <div className="eyebrow mb-4 text-meta">Demo</div>
             <div className="size-11 rounded-lg bg-surface-apple text-fg-2 flex items-center justify-center mb-5">
               <BarChart3 className="size-5" />
@@ -271,7 +271,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             <button
               type="button"
               onClick={loadDemo}
-              className="btn-pill btn-pill-secondary focus-halo w-full transition-apple mt-auto"
+              className="btn-pill btn-pill-secondary btn-press focus-halo w-full transition-apple mt-auto"
             >
               Load demo review
             </button>
@@ -324,7 +324,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             </div>
           ) : saved && saved.length > 0 ? (
             <div className="grid sm:grid-cols-2 gap-3">
-              {saved.map((r) => {
+              {saved.map((r, idx) => {
                 const Icon = TYPE_ICONS[r.type] ?? FilePlus2;
                 return (
                   <div
@@ -338,7 +338,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
                         onOpen(r.id);
                       }
                     }}
-                    className="card-apple p-5 hover:-translate-y-0.5 transition-apple-slow cursor-pointer group focus-halo"
+                    className={`card-apple btn-press hover-lift p-5 hover:-translate-y-0.5 transition-apple-slow cursor-pointer group focus-halo${idx < 8 ? " stagger-item" : ""}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="size-12 rounded-lg bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center shrink-0 transition-apple group-hover:bg-[#0071e3] group-hover:text-white">
@@ -375,7 +375,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
                           e.stopPropagation();
                           handleDelete(r.id);
                         }}
-                        className="text-meta hover:text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-halo rounded-md p-1.5 transition-apple"
+                        className="btn-press text-meta hover:text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-halo rounded-md p-1.5 transition-apple"
                       >
                         <Trash2 className="size-4" />
                       </button>
@@ -396,7 +396,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
               <button
                 type="button"
                 onClick={() => setWizardOpen(true)}
-                className="btn-pill btn-pill-secondary focus-halo transition-apple"
+                className="btn-pill btn-pill-secondary btn-press focus-halo transition-apple"
               >
                 <FilePlus2 className="size-4" />
                 Create new review

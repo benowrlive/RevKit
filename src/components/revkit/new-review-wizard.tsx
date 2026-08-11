@@ -61,8 +61,11 @@ const SAMPLE_TITLES: Record<ReviewType, string> = {
   FLEXIBLE: "Custom review",
 };
 
-// Apple's signature decelerate-then-settle easing curve.
-const APPLE_EASE: [number, number, number, number] = [0.28, 0, 0.22, 1];
+// Emil Kowalski's --ease-out curve (cubic-bezier(0.23, 1, 0.32, 1)) —
+// starts fast, feels responsive. Faster-feeling than Apple's standard curve
+// (0.28, 0, 0.22, 1) which is more conservative. Used for the step slide.
+// Source: emilkowalski/skills/emil-design-eng/SKILL.md §"Ease-out curves".
+const EMIL_EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 const STEP_LABELS = [
   "Choose type",
@@ -115,7 +118,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? null : close())}>
       <DialogContent
-        className="max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+        className="modal-origin max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
       >
         {/* ─── Header: eyebrow + display title + description ─── */}
         <DialogHeader className="gap-1">
@@ -152,7 +155,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              transition={{ duration: 0.22, ease: EMIL_EASE }}
               className="space-y-4"
             >
               <label className="block font-display text-sm font-semibold tracking-display text-foreground">
@@ -169,7 +172,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                   return (
                     <label
                       key={t.value}
-                      className={`group cursor-pointer rounded-[18px] border-2 p-5 transition-apple ${
+                      className={`stagger-item group cursor-pointer rounded-[18px] border-2 p-5 transition-apple ${
                         checked
                           ? "border-[#0071e3] bg-[#0071e3]/5"
                           : "border-border hover:border-[#0071e3]/40 hover:bg-surface-warm"
@@ -234,7 +237,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              transition={{ duration: 0.22, ease: EMIL_EASE }}
               className="space-y-4"
             >
               <div className="space-y-1">
@@ -280,7 +283,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              transition={{ duration: 0.22, ease: EMIL_EASE }}
               className="space-y-5"
             >
               <div className="space-y-2">
@@ -327,7 +330,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22, ease: APPLE_EASE }}
+              transition={{ duration: 0.22, ease: EMIL_EASE }}
               className="space-y-4"
             >
               <label className="block font-display text-sm font-semibold tracking-display text-foreground">
@@ -391,7 +394,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
           <button
             type="button"
             onClick={close}
-            className="text-sm font-medium text-fg-2 transition-apple hover:text-foreground focus-visible:outline-none"
+            className="btn-press text-sm font-medium text-fg-2 transition-apple hover:text-foreground focus-visible:outline-none"
           >
             Cancel
           </button>
@@ -400,7 +403,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
               <button
                 type="button"
                 onClick={back}
-                className="btn-pill-secondary font-display tracking-display"
+                className="btn-press btn-pill-secondary font-display tracking-display"
               >
                 <ArrowLeft className="size-4" />
                 Back
@@ -411,7 +414,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                 type="button"
                 onClick={next}
                 disabled={step === 0 && !type}
-                className="btn-pill font-display tracking-display"
+                className="btn-press btn-pill font-display tracking-display"
               >
                 Next
                 <ArrowRight className="size-4" />
@@ -422,7 +425,7 @@ export function NewReviewWizard({ open, onClose, onCreate }: Props) {
                 type="button"
                 onClick={finish}
                 disabled={!type || !title.trim()}
-                className="btn-pill font-display tracking-display"
+                className="btn-press btn-pill font-display tracking-display"
               >
                 <Check className="size-4" />
                 Create review

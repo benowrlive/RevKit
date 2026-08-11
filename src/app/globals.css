@@ -171,6 +171,19 @@
   --motion-base: 220ms;
   --ease-standard: cubic-bezier(0.28, 0, 0.22, 1);
 
+  /* Emil Kowalski animation curves — stronger than default CSS easings.
+   * Source: emilkowalski/skills/animate/SKILL.md
+   *   --ease-out     for ENTER animations (dropdowns, popovers, toasts) —
+   *                  starts fast, feels responsive
+   *   --ease-in-out  for ON-SCREEN movement (slides, position changes) —
+   *                  natural acceleration + deceleration
+   *   --ease-drawer  iOS-like drawer curve (from Ionic) — for sheets/drawers
+   *
+   * NEVER use ease-in for UI animations — it starts slow and feels sluggish. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   /* Container — Apple's readable measure (1024px max) */
   --container-max: 1024px;
   --container-gutter-desktop: 22px;
@@ -403,5 +416,269 @@
   .focus-halo:focus-visible {
     outline: none;
     box-shadow: var(--focus-ring);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Emil Kowalski animation layer
+ *
+ * Source: emilkowalski/skills/emil-design-eng/SKILL.md + animate/RECIPES.md
+ *
+ * Core principles applied here:
+ *   1. Buttons feel responsive — scale(0.97) on :active, 160ms ease-out
+ *   2. Popovers are origin-aware — scale from trigger, not center (modals exempt)
+ *   3. Tooltips skip delay on subsequent hovers (instant after first open)
+ *   4. Toasts use @starting-style for CSS-only entry animation
+ *   5. Use CSS transitions, not keyframes, for interruptibility on rapid triggers
+ *   6. Animate transform + opacity only (GPU-friendly, off main thread)
+ *   7. Stagger group entrances (30-80ms) — decorative, never blocks interaction
+ *   8. Reduced-motion: cross-fade, not slide/spring (gentler, not zero)
+ *   9. Reduced-transparency: solid backgrounds, drop the blur
+ * ─────────────────────────────────────────────────────────────────── */
+
+@layer components {
+  /* Button press feedback — universal, applies to any pressable element.
+   * Source: animate/RECIPES.md §Button press
+   * "scale() scales children too — the label and icons come along, which
+   *  is what makes it read as a physical press." */
+  .btn-press {
+    transition: transform 160ms var(--ease-out);
+  }
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Enter animation — for elements that pop in (cards, panels, list items).
+   * Source: emil-design-eng §"Never animate from scale(0)"
+   * "Nothing in the real world disappears and reappears completely. Start
+   *  from scale(0.95) or higher, combined with opacity." */
+  .enter-pop {
+    animation: enter-pop 220ms var(--ease-out) both;
+  }
+  @keyframes enter-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Enter from below — for toasts, sheets, drawers.
+   * Uses translateY(100%) — relative to element's own height, not px. */
+  .enter-rise {
+    animation: enter-rise 400ms var(--ease-standard) both;
+  }
+  @keyframes enter-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Staggered entrance for groups (cards, list items).
+   * Apply .stagger to the parent + .stagger-item to each child.
+   * 50ms between items — short enough to feel snappy, long enough to register.
+   * Decorative — never blocks pointer events. */
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: stagger-in 280ms var(--ease-out) forwards;
+  }
+  .stagger-item:nth-child(1) { animation-delay: 0ms; }
+  .stagger-item:nth-child(2) { animation-delay: 50ms; }
+  .stagger-item:nth-child(3) { animation-delay: 100ms; }
+  .stagger-item:nth-child(4) { animation-delay: 150ms; }
+  .stagger-item:nth-child(5) { animation-delay: 200ms; }
+  .stagger-item:nth-child(6) { animation-delay: 250ms; }
+  .stagger-item:nth-child(7) { animation-delay: 300ms; }
+  .stagger-item:nth-child(8) { animation-delay: 350ms; }
+  @keyframes stagger-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Origin-aware popover — scales from trigger, not center.
+   * Source: emil-design-eng §"Make popovers origin-aware"
+   * "The default transform-origin: center is wrong for almost every popover.
+   *  Exception: modals. Modals should keep transform-origin: center because
+   *  they are not anchored to a specific trigger." */
+  .popover-origin {
+    transform-origin: var(--radix-popper-transform-origin, center);
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
+  }
+  .popover-origin[data-state="closed"],
+  .popover-origin[data-starting-style],
+  .popover-origin[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  /* Modal — stays centered, NOT origin-aware (the documented exception).
+   * Source: animate/RECIPES.md §Modal */
+  .modal-origin {
+    transform-origin: center;
+    transition:
+      opacity 250ms var(--ease-out),
+      transform 250ms var(--ease-out);
+  }
+  .modal-origin[data-state="closed"],
+  .modal-origin[data-starting-style],
+  .modal-origin[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  /* Drawer / sheet — iOS-style curve.
+   * Source: animate/RECIPES.md §Drawer / sheet */
+  .drawer-origin {
+    transition: transform 500ms var(--ease-drawer);
+  }
+
+  /* Toast enter — CSS-only via @starting-style (no JS mount flag needed).
+   * Source: animate/RECIPES.md §Toast
+   * "ease rather than ease-out, slightly slower than typical UI: Sonner reads
+   *  as elegant partly because its motion is tuned to the component's
+   *  personality rather than to the generic UI budget." */
+  .toast-enter {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 400ms ease,
+      transform 400ms ease;
+    @starting-style {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+  }
+
+  /* Tooltip — fast + skip animation on subsequent hovers.
+   * Source: animate/RECIPES.md §Tooltip */
+  .tooltip-origin {
+    transform-origin: var(--radix-popper-transform-origin, center);
+    transition:
+      transform 125ms var(--ease-out),
+      opacity 125ms var(--ease-out);
+  }
+  .tooltip-origin[data-state="closed"],
+  .tooltip-origin[data-starting-style],
+  .tooltip-origin[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  /* Hover lift — for cards. Subtle, only on hover-capable pointers.
+   * Source: emil-design-eng §"Make popovers origin-aware" + Apple elev-raised */
+  @media (hover: hover) and (pointer: fine) {
+    .hover-lift {
+      transition:
+        box-shadow var(--motion-base) var(--ease-standard),
+        transform var(--motion-base) var(--ease-standard);
+    }
+    .hover-lift:hover {
+      box-shadow: var(--elev-raised);
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Crossfade with blur — for state changes that look jarring without a bridge.
+   * Source: emil-design-eng §"Use blur to mask imperfect transitions"
+   * "Without blur, you see two distinct objects during a crossfade — the old
+   *  state and the new state overlapping. Blur bridges the visual gap." */
+  .crossfade-blur {
+    transition:
+      filter 200ms ease,
+      opacity 200ms ease;
+  }
+  .crossfade-blur[data-transitioning] {
+    filter: blur(2px);
+    opacity: 0.7;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Reduced motion + reduced transparency (Apple HIG + Emil Kowalski)
+ *
+ * Source: apple-design/SKILL.md §14 + emil-design-eng §Accessibility
+ *
+ * Reduced motion doesn't mean NO feedback — it means gentler, non-vestibular
+ * equivalents. We:
+ *   - Drop slides + springs + parallax
+ *   - Keep short opacity cross-fades (aids comprehension)
+ *   - Drop elastic/overshoot
+ *   - Keep color changes that aid comprehension
+ * ─────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 200ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 200ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Replace slides/springs with opacity-only cross-fades */
+  .enter-pop,
+  .enter-rise,
+  .stagger-item {
+    animation: fade-only 200ms ease both !important;
+    transform: none !important;
+  }
+  @keyframes fade-only {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Drop the press scale (which is motion) but keep the visual feedback */
+  .btn-press:active {
+    transform: none;
+    filter: brightness(0.95);
+  }
+
+  /* Drop the hover-lift transform */
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  /* Drawer transitions become opacity-only */
+  .drawer-origin {
+    transition: opacity 200ms ease !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  /* Frosted-glass surfaces become solid — Apple's documented behavior */
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md,
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+    background: var(--background) !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  /* Near-solid backgrounds with defined, contrasting borders */
+  :root {
+    --border: #1d1d1f;
+    --border-soft: #424245;
+    --muted: #424245;
+    --meta: #424245;
+  }
+  .card-apple,
+  .field-apple,
+  .btn-pill-secondary {
+    border-width: 2px;
   }
 }

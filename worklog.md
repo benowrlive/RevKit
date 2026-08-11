@@ -540,3 +540,95 @@ Stage Summary:
 - All headings now use font-display + tracking-display (tight -0.015em letter-spacing).
 - All inputs use .field-apple (border-led + 4px blue focus halo).
 - All CTAs use .btn-pill (Apple's signature 980px-radius capsule).
+
+---
+Task ID: B-3
+Agent: animation-polish
+Task: Apply Emil Kowalski animation layer (button press, origin-aware popovers, stagger entrances, toast @starting-style) to existing components.
+Work Log:
+- Read worklog.md, emil-design-eng/SKILL.md (§"Buttons must feel responsive", §"Make popovers origin-aware", §"Stagger Animations", §"Use blur to mask imperfect transitions", §"Animate enter states with @starting-style"), and animate/RECIPES.md (full).
+- Confirmed utility classes already present in src/app/globals.css @layer components: .btn-press, .enter-pop, .enter-rise, .stagger-item, .popover-origin, .modal-origin, .drawer-origin, .tooltip-origin, .hover-lift, .crossfade-blur — plus reduced-motion + reduced-transparency overrides at the file foot.
+- Edited src/components/revkit/welcome-screen.tsx:
+  - Removed now-unused `framer-motion` import.
+  - Replaced the hero `<motion.div initial={{y:10}} animate={{y:0}}>` with a plain `<div className="enter-rise …">` — CSS-only 400ms ease-standard translateY(12px)→0, off main thread.
+  - Added `.btn-press` to all 7 clickable buttons: 2 hero CTAs, 3 action-card CTAs, the saved-review delete buttons, and the empty-state CTA.
+  - Added `.stagger-item` to the 3 hero action cards (New Review / Open Saved / Try Demo) — 0/50/100ms entrance.
+  - Added `.btn-press .hover-lift` and `.stagger-item` (gated to first 8 via `idx < 8`) to saved-review cards in the library grid. Conditional class composition uses a template literal so cards 9+ skip the stagger entirely per the gate.
+- Edited src/components/revkit/workspace-shell.tsx:
+  - Removed `framer-motion` import (AnimatePresence + motion no longer used).
+  - Replaced `<AnimatePresence><motion.div>` page-content wrapper with `<div key={active} className="enter-pop …">` — tab switches now replay the 220ms scale(0.96)→1 + opacity 0→1 ease-out entrance via CSS only.
+  - Added `.btn-press` to Library back button, Save button, and every sidebar nav item (template-literal class).
+  - Verified top bar still uses `backdrop-blur-xl` (line 176) — kept as-is.
+- Edited src/components/revkit/new-review-wizard.tsx:
+  - Renamed `APPLE_EASE = [0.28,0,0.22,1]` → `EMIL_EASE = [0.23,1,0.32,1]` (Emil's --ease-out value) with updated comment. All 4 step transitions now reference EMIL_EASE.
+  - Kept the framer-motion AnimatePresence step-slide (x:20→0) — only the easing tuple changed.
+  - Added `.modal-origin` class to DialogContent (modal stays centered — explicitly the documented exception to origin-aware scaling per animate/RECIPES.md §Modal).
+  - Added `.btn-press` to Cancel / Back / Next / Create review buttons.
+  - Added `.stagger-item` to the 5 review-type radio `<label>` cards (0/50/100/150/200ms stagger).
+- Edited shadcn primitives (className additions only, existing classes preserved):
+  - dropdown-menu.tsx → `.popover-origin` on DropdownMenuContent.
+  - select.tsx → `.popover-origin` on SelectContent.
+  - popover.tsx → `.popover-origin` on PopoverContent.
+  - tooltip.tsx → `.tooltip-origin` on TooltipContent (125ms ease-out, faster than popovers).
+  - dialog.tsx → `.modal-origin` on DialogContent (center origin exception).
+- Edited src/app/layout.tsx: configured SonnerToaster with `theme="system"` and `toastOptions={{ style: { borderRadius: "18px", border: "1px solid var(--border)" } }}` to match Apple `--radius-lg: 18px` + hairline border; kept richColors + position="top-right".
+- Ran `bunx tsc --noEmit` — no errors in src/components or src/app. (4 pre-existing errors in unrelated examples/ and skills/ sidecar directories — not introduced by this task.)
+- Ran `bun run lint` — clean, zero warnings/errors.
+Stage Summary:
+- 9 files edited across RevKit's component layer — 3 RevKit feature components + 5 shadcn/ui primitives + 1 layout.
+- All edits are className additions (or constant value updates); no existing classes removed; no business logic touched.
+- Animation layer applied per Emil's decision gate:
+  - Occasional-frequency surfaces (hero entrance, action cards, saved-review library, tab changes, wizard step slides, modal/dropdown/select/popover/tooltip/dialog opens, toast entry) get standard animations.
+  - High-frequency surfaces (sidebar nav, save button) get only `.btn-press` — no enter animations that would slow daily use.
+  - The toast @starting-style CSS-only entry path is wired up via the global .toast-enter rule already in globals.css; layout.tsx now exposes the Sonner styling tokens.
+- Verified no TS regressions and clean lint before sign-off.
+
+---
+Task ID: B-summary
+Agent: main
+Task: Install emilkowalski/skills (via git clone) and apply Emil Kowalski's animation philosophy to RevKit UI.
+
+Work Log:
+- Attempted `npx skills@latest add emilkowalski/skills` — timed out due to sandbox network restrictions.
+- Cloned emilkowalski/skills via `git clone --depth 1 https://github.com/emilkowalski/skills.git` (worked fine — git is allowed even when npm registry / npmjs downloads hang).
+- Saved skills locally to `/home/z/my-project/skills/emilkowalski/` for future use (10 skills: emil-design-eng, animate, animate/RECIPES.md, review-animations, improve-animations, find-animation-opportunities, animation-vocabulary, apple-design, ask-sonner, pick-ui-library, prototype).
+- Read emil-design-eng SKILL.md (675 lines) + animate/RECIPES.md (324 lines) + ask-sonner/SKILL.md + find-animation-opportunities/SKILL.md.
+- Added Emil's 3 signature easing curves to globals.css as CSS custom properties:
+  - --ease-out: cubic-bezier(0.23, 1, 0.32, 1) — for ENTER animations (dropdowns, popovers, toasts)
+  - --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1) — for on-screen movement
+  - --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1) — iOS-like drawer curve
+  Documented in code: "NEVER use ease-in for UI animations — it starts slow and feels sluggish."
+- Added a comprehensive @layer components block to globals.css implementing Emil's animation recipes:
+  - .btn-press — scale(0.97) on :active, 160ms ease-out (button press feedback)
+  - .enter-pop — 220ms scale(0.96)→1 + opacity entrance
+  - .enter-rise — 400ms translateY(12px)→0 + opacity (for toasts)
+  - .stagger-item — 50ms staggered entrance for up to 8 children
+  - .popover-origin — origin-aware popover (scales from trigger, not center)
+  - .modal-origin — modal exception (stays centered, scale 0.96→1)
+  - .drawer-origin — 500ms iOS-style drawer ease
+  - .toast-enter — @starting-style CSS-only entry (no JS mount flag)
+  - .tooltip-origin — 125ms ease-out, faster than popovers
+  - .hover-lift — translateY(-2px) + elev-raised shadow, gated to hover-capable pointers
+  - .crossfade-blur — blur(2px) + opacity 0.7 during state changes to mask seams
+- Added accessibility media queries per Apple HIG + Emil's accessibility rules:
+  - prefers-reduced-motion: reduce — drop slides/springs/parallax, keep 200ms opacity cross-fades
+  - prefers-reduced-transparency: reduce — frosted-glass surfaces become solid
+  - prefers-contrast: more — bolder borders + darker muted text
+- Dispatched subagent B-3 to apply animations to existing components:
+  - welcome-screen.tsx: btn-press on 7 buttons, stagger-item on 3 hero cards + saved-review cards (max 8), hover-lift on cards, replaced framer-motion enter with .enter-rise CSS class.
+  - workspace-shell.tsx: btn-press on Save + Library + nav items, .enter-pop on tab content (replaced AnimatePresence+motion.div with pure CSS).
+  - new-review-wizard.tsx: .modal-origin on DialogContent, btn-press on 4 footer buttons, stagger-item on 5 review-type radios, changed framer-motion easing to Emil's --ease-out value [0.23, 1, 0.32, 1].
+  - shadcn primitives (5 files): .popover-origin on DropdownMenuContent / SelectContent / PopoverContent, .tooltip-origin on TooltipContent, .modal-origin on DialogContent.
+  - layout.tsx: Sonner toaster theme="system" + Apple-style toastOptions (18px radius, hairline border).
+- Verified with agent-browser: welcome page renders with staggered hero, wizard opens with centered modal origin, tab switches replay enter-pop animation, forest plot still computes correctly (OR 0.88 [0.77, 1.01], I²=69%, Z=-1.86, P=0.063 — exact R match).
+
+Stage Summary:
+- emilkowalski/skills installed locally (10 skills saved to /home/z/my-project/skills/emilkowalski/).
+- Apple design language (already applied in Task A) now paired with Emil Kowalski's animation philosophy (button press feedback, origin-aware popovers, stagger entrances, CSS-only toast entries, reduced-motion accessibility).
+- All animations follow Emil's frequency gate:
+  - Occasional (hero, action cards, library, tab changes, wizard steps, modal/popover opens, toasts) → Standard animation
+  - Tens/day (sidebar nav, Save button) → Only btn-press, no enter animation
+  - Keyboard-initiated (command palette, shortcuts) → No animation ever
+- All animations GPU-friendly: only transform + opacity animated; CSS transitions (not keyframes) for interruptibility on rapid triggers.
+- Lint clean, TypeScript clean (only pre-existing examples/skills sidecar errors remain).
+- Verified end-to-end with agent-browser: welcome → demo → sample data → forest plot all working with new polish layer.

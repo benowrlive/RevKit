@@ -1,0 +1,543 @@
+     1→# RevKit — Worklog / Handover Document
+     2→
+     3→> Web-based adaptation of the RevKit master prompt (originally Tauri desktop; here built as Next.js 16 web app with Prisma/SQLite persistence).
+     4→
+     5→## Project Status (Initial)
+     6→- Next.js 16 + Tailwind 4 + shadcn/ui + Prisma 6 + Zustand + TanStack Table/Query already scaffolded.
+     7→- Dev server running on port 3000.
+     8→- Building adapted RevKit: covers Phases 0–5 of the master prompt in web form (no Tauri, no desktop packaging).
+     9→
+    10→## Architecture Adaptation
+    11→- `lib/project` — in-browser project state (Zustand) + `.revkit` JSON serialize/parse via zod, persisted to SQLite via API routes.
+    12→- `lib/stats` — pure-TS stats engine (MH, Peto, IV, DL, heterogeneity, DTA).
+    13→- `lib/dta` — DTA calculator.
+    14→- `lib/prisma-flow` — PRISMA 2020 11-box template.
+    15→- `lib/export` — CSV / DOCX / SVG / PNG export (browser-side via Blob).
+    16→- `components/forest-plot` — D3 + SVG forest plot, SROC, funnel.
+    17→- `components/rob` — RoB 2 / ROBINS-I / QUADAS-2 editors + summary plots.
+    18→- `components/prisma-flow` — PRISMA flow editor.
+    19→- `app/api/reviews` — REST endpoints for review persistence.
+    20→
+    21→## Goal
+    22→Deliver a feature-rich, polished web RevKit MVP with all 5 review types, DTA calculator, meta-analysis engine with forest/SROC/funnel plots, all 3 RoB tools, PRISMA flow, and CSV/DOCX export.
+    23→
+    24→---
+    25→Task ID: 0
+    26→Agent: main
+    27→Task: Initialize worklog and project plan for RevKit web adaptation.
+    28→
+    29→Work Log:
+    30→- Read MASTER-PROMPT.md (929 lines) covering RevKit spec.
+    31→- Audited existing Next.js scaffold: shadcn/ui full set, Prisma 6, Zustand, TanStack Query/Table, Recharts available.
+    32→- Decided to adapt Tauri desktop design into a Next.js web app (no Rust shell, use SQLite + API routes instead).
+    33→- Planned 10-task build: schema → store → wizard → workspace → studies → data entry → stats+plots → RoB → PRISMA+export → polish.
+    34→
+    35→Stage Summary:
+    36→- Worklog created.
+    37→- Ready to begin Phase 1: Prisma schema + types + store.
+    38→
+    39→---
+    40→Task ID: 2-b
+    41→Agent: rob-prisma-config
+    42→Task: Build RoB tools config (RoB 2, ROBINS-I, QUADAS-2) and PRISMA 2020 11-box template.
+    43→
+    44→Work Log:
+    45→- Read worklog and `src/lib/types.ts` to align `RobJudgement`, `RobTool`, `ReviewType`, `PrismaFlow`, `PrismaFlowBox`, `Review`, `Reference` and `Study` shapes.
+    46→- Created `src/lib/rob/` and `src/lib/prisma-flow/` directories.
+    47→- Authored `src/lib/rob/config.ts`:
+    48→  - Types: `RobAnswer`, `RobJudgement` (8-value union), `SignallingQuestion`, `RobDomain`, `RobAlgorithmRule` (placeholder w/ `description`), `RobJudgementOption`, `RobToolDef`.
+    49→  - RoB 2 (5 domains, 2-4-2-3-2 signalling questions per BMJ 2019;366:l4898). D1 high if any `no`/`ni`; D2-D5 high if any `no`; low if all `yes`/`py`/`na`; else some_concerns. Overall = high if any domain high, low if all low, else some_concerns.
+    50→  - ROBINS-I V2 (7 domains, 2-2-2-3-2-2-2 questions). Per-domain: all-`ni`→no_information, ≥2 `no`→critical, any `no`/`ni`→serious, any `py`→moderate, else low. Overall = worst of non-no_information domains via `ROBINS_RANK` (low<moderate<serious<critical), or no_information if every domain is no_information.
+    51→  - QUADAS-2 (4 domains, 2-2-2-3 questions). Low only if all `yes`; high if any `no`; else unclear. Overall high if any high, low if all low, else unclear.
+    52→  - Judgement option palettes per spec (green #22c55e / amber #f59e0b / red #ef4444 / lime #84cc16 / gray #94a3b8).
+    53→  - `appliesToReviewTypes`: ROB2 & ROBINS_I → INTERVENTION, METHODOLOGY, FLEXIBLE; QUADAS_2 → DTA, FLEXIBLE.
+    54→  - Exported `ROB_TOOLS: Record<string, RobToolDef>` plus helpers `getRobTool`, `computeDomainJudgement`, `getSignallingQuestionIds`.
+    55→- Authored `src/lib/prisma-flow/template.ts`:
+    56→  - `PRISMA_TEMPLATE` array of 11 `PrismaFlowBoxDef` items (4 identification, 2 screening, 4 eligibility, 1 included).
+    57→  - `createEmptyPrismaFlow(reviewId = "")` returns a `PrismaFlow` with all 11 boxes count=0, autoCount=true. (Default param chosen so the spec call `createEmptyPrismaFlow()` still type-checks against the required `reviewId` field on `PrismaFlow`.)
+    58→  - `computePrismaCountsFromReview(review)` implements the heuristic mapping exactly per spec (id_db=refs.length, id_dedup by case-insensitive `excludeReason` includes "duplicate", scr_screened=id_db-id_dedup, scr_excluded=EXCLUDE@title_abstract, elig_sought=INCLUDE|MAYBE, elig_assessed=elig_sought, elig_excluded=EXCLUDE@full_text, inc_review=studies.length).
+    59→  - Bonus exports: `PRISMA_BOX_IDS`, `getPrismaBoxDef`.
+    60→- Ran `bun run lint` — passes with zero errors (the pre-existing `examples/` and `skills/` TS errors are out of scope and unrelated).
+    61→- Ran `bunx tsc --noEmit` — confirmed no TS errors in either new file.
+    62→- Wrote an ad-hoc sanity script and ran via `bun` to validate all three algorithms and PRISMA counting — every result matched expectations (e.g. RoB2 D1Q1=no → high; ROBINS-I D1Q1=no → serious, two `no`s → critical; QUADAS-2 D1Q1=py → unclear; PRISMA counts `{"id_db":5,"id_dedup":1,"scr_screened":4,"scr_excluded":1,"elig_sought":1,"elig_excluded":1,"inc_review":1}` for the seeded review).
+    63→
+    64→Stage Summary:
+    65→- Two pure-TS, React-free, `any`-free config modules delivered:
+    66→  - `/home/z/my-project/src/lib/rob/config.ts` — `ROB_TOOLS` registry + algorithm functions + per-domain judgement helper.
+    67→  - `/home/z/my-project/src/lib/prisma-flow/template.ts` — 11-box PRISMA 2020 template + `createEmptyPrismaFlow` + `computePrismaCountsFromReview` heuristic.
+    68→- All algorithms verified with a runtime sanity pass; ESLint and `tsc --noEmit` both clean for the new files.
+    69→- Ready for downstream UI tasks (RoB editors, PRISMA flow editor, summary plots) to import these modules.
+    70→
+    71→---
+    72→Task ID: 2-a
+    73→Agent: stats-engine
+    74→Task: Build pure-TS stats engine (IV/MH/Peto/DL/heterogeneity/DTA) and DTA calculator.
+    75→
+    76→Work Log:
+    77→- Read worklog + types.ts to understand existing domain types (DataType, EffectMeasure, MethodType, DataPoint).
+    78→- Created `src/lib/stats/normal.ts`:
+    79→  - `normalCdf` via Abramowitz-Stegun 7.1.26 (max err < 7.5e-8) with symmetry for x<0.
+    80→  - `normalInverseCdf` via Acklam's rational approximation (3-region: lower tail / central / upper tail).
+    81→  - `zForConfidence(0.95) = 1.959963984540054`.
+    82→  - `gammainc(x, a)` regularized lower incomplete gamma (Numerical Recipes series + Lentz continued fraction).
+    83→  - `chiSqCdf` = gammainc(x/2, df/2); `chiSqPValue` = 1 - chiSqCdf.
+    84→  - Verified: chiSqCdf(11.0705, 5) ≈ 0.95, normalInverseCdf(0.975) ≈ 1.959964.
+    85→- Created `src/lib/stats/effect.ts`:
+    86→  - Interfaces: Effect, DichotomousStudy, ContinuousStudy, OeVStudy, GivStudy, StudyInput union.
+    87→  - `riskRatio`, `oddsRatio`, `riskDifference` (Katz/Woolf/RD SE) — continuity-corrected when any cell is zero.
+    88→  - `petoOddsRatio` — explicit NO continuity correction (per anti-pattern rule).
+    89→  - `meanDifference`, `standardizedMeanDiff` (Hedges' g with J correction), `genericEffect`, `oeV`.
+    90→  - CI bounds for ratios computed on log scale then exp()'d; differences on raw scale.
+    91→  - `computeEffect(dataType, effectMeasure, study: StudyInput)` dispatcher with exhaustiveness — DTA measures throw (handled in lib/dta + lib/stats/dta).
+    92→- Created `src/lib/stats/pooling.ts`:
+    93→  - `PooledEffect` interface matching spec exactly (effect, se, ciLower/Upper, z, pValue, weight[], Q, df, pValueHeterogeneity, I2, tau2, H, effectOnOriginalScale, ciLowerOriginal, ciUpperOriginal, isLogScale).
+    94→  - `inverseVarianceFixed` (1/se² weights, pooled SE = √(1/Σw), z, 2*(1-Φ(|z|)), Q, I²=max(0,(Q-df)/Q), H=√(Q/df) if Q>df else 1).
+    95→  - `petoPooling` takes raw {O,E,V}[] → converts to (theta=(O-E)/V, se=1/√V) → IV fixed (IV weight = V, canonical Peto weight).
+    96→  - `mantelHaenszelOR` (Greenland-Robins variance: term1=Σ P/(2R²), term2=Σ (PQ+RS)/(2R²T), term3=Σ Q/(4TR²), T=N²).
+    97→  - `mantelHaenszelRR` (Robins-Greenland variance: term1=Σ n1·n2·(N-c)/N², term2=Σ (a(n1-c)+c(n1-a))/N).
+    98→  - `derSimonianLaird` (fixed-effect Q first, then C=Σw-Σw²/Σw, τ²=max(0,(Q-df)/C), random weights 1/(se²+τ²)).
+    99→  - `derSimonianLairdDTA` — alias for DL on logit-scale (DTA callers re-derive invLogit/exp themselves).
+   100→  - `pool(effects, method, isLogScale=true)` dispatcher — IV/PETO→IV fixed, DL→DL, MH/DTA methods throw with helpful messages.
+   101→  - Anti-pattern guardrails: I² always `max(0, ...)`, two-tailed p uses `2*(1-Φ(|z|))`.
+   102→- Created `src/lib/stats/dta.ts`:
+   103→  - `univariateLogitSensitivity` (logit=TP/FN, se=√(1/TP+1/FN), pool via IV/DL, back-transform sens=1/(1+e^-logit)).
+   104→  - `univariateLogitSpecificity` (logit=TN/FP).
+   105→  - `diagnosticOddsRatio` (log DOR=ln(TP·TN/FP·FN), se=√(1/TP+1/FP+1/FN+1/TN)).
+   106→  - `hsroc` — weighted least squares (weights = 1/var(logit sens)) for logit(TPR)=α+β·logit(FPR); symmetric (|β-1|<0.5) summary point at sens=spec=1/(1+e^(-α/2)); asymmetric anchored at logit(FPR)=0.
+   107→  - All functions apply 0.5 continuity correction when any cell is zero, expose Heterogeneity { Q, df, pValue, I2, tau2, H }.
+   108→- Created `src/lib/dta/calculate.ts`:
+   109→  - `DtaInput`, `DtaMetric`, `DtaResult` interfaces per spec.
+   110→  - `calculateDta` — Wilson CI for proportions (sens/spec/PPV/NPV/prevalence), log-based CI for LR+/LR-/DOR using standard SE formulas.
+   111→  - Continuity correction (0.5 to all 4 cells) ONLY for SE/variance; reported `value` uses raw counts (RevMan convention — documented in formatter).
+   112→  - Graceful NaN when TP+FN=0 (sensitivity undefined) etc.
+   113→  - `formatDtaResult` — multiline text: percentages for proportions, 2-decimal for ratios.
+   114→- Created `src/lib/stats/index.ts` barrel re-exporting normal/effect/pooling/dta.
+   115→- Created `tests/stats-self-check.ts` — 30+ assertions covering DTA acceptance case, normal/chi-sq primitives, per-study effects, IV/DL/MH pooling, DTA pooling, dispatcher routing.
+   116→- Ran `bun run lint` (clean) and `bunx tsc --noEmit` (clean for src/lib/stats + src/lib/dta; pre-existing errors only in examples/ and skills/ which are unrelated).
+   117→- Ran self-check: ALL PASSED, including TP=80/FP=10/FN=20/TN=90 → Sens 80.0%, Spec 90.0%, PPV 88.9%, NPV 81.8%, LR+ 8.0, LR- 0.22, Prevalence 50.0%.
+   118→
+   119→Stage Summary:
+   120→- 6 files created: src/lib/stats/{normal,effect,pooling,dta,index}.ts + src/lib/dta/calculate.ts.
+   121→- All functions pure TS, client-side safe, no `any` (used discriminated union `StudyInput` instead of the spec's `study: any`).
+   122→- Optional `isLogScale: boolean = true` param added to `inverseVarianceFixed`/`derSimonianLaird`/`pool` to populate `effectOnOriginalScale`/`isLogScale` correctly — defaults to true (ratio measures are the common case); MD/SMD/RD callers pass `false`. This is a minor, backward-compatible deviation from the literal spec signatures.
+   123→- `petoPooling` takes raw `{O,E,V}[]` per spec note, routes through IV fixed (documented assumption that IV weight = V = canonical Peto weight).
+   124→- Lint: clean. tsc: clean for new code. Self-check: ALL PASSED.
+   125→- Next: build UI layer (outcome editor, data entry grid, forest/SROC/funnel plots, RoB editors) on top of the stats engine.
+   126→
+   127→---
+   128→Task ID: 4-a
+   129→Agent: studies-references-pages
+   130→Task: Build StudiesPage and ReferencesPage components.
+   131→
+   132→Work Log:
+   133→- Read worklog + `src/lib/project/state.ts` (Zustand store exposing `addStudy`/`updateStudy`/`deleteStudy`/`addReferences`/`updateReference`/`deleteReference`/`promoteReferenceToStudy`) and `src/lib/types.ts` (`Study`, `Reference`, `STUDY_DESIGNS`, `EXCLUDE_REASONS`).
+   134→- Audited existing revkit components (`workspace-shell.tsx`, `new-review-wizard.tsx`) and shadcn/ui primitives (`dialog`, `alert-dialog`, `dropdown-menu`, `tabs`, `tooltip`, `select`, `table`, `badge`, `button`, `card`, `input`, `textarea`, `label`) to match house styling conventions (emerald accent, `border-dashed` empty cards, `size-*` lucide sizing, sonner toasts).
+   135→- Authored `src/components/revkit/studies-page.tsx` (named export `StudiesPage`, `"use client"`):
+   136→  - Header: "Studies" title with `Users` icon, count Badge, "Add study" Button.
+   137→  - Plain `<Table>` (not TanStack) — kept simple per task guidance. Columns: Label (with authors sub-line), Year, Design (hidden on mobile), Status (color-coded Badge), DOI (truncated + `ExternalLink`, hidden on small screens), Actions (DropdownMenu: Edit / Delete).
+   138→  - Empty state: dashed-border Card with `FileText` icon, "No studies yet" message, and a hint that studies can be created by promoting included references from the References page.
+   139→  - Single `StudyFormDialog` component reused for add + edit, mode detected via `study !== null`. Fields: label (required), year (number, validated 1900–current+1), authors, doi, design (Select with `STUDY_DESIGNS` + "(unspecified)" option), status (included/pending/excluded), indexTest, referenceStandard, notes. On DTA reviews, indexTest + referenceStandard show a `Microscope` "DTA-specific" Badge (sky-blue).
+   140→  - Delete: AlertDialog with the spec's exact copy ("Delete study? This will also remove its data points and RoB assessments.").
+   141→  - Form state reset: used a `key={editingStudy?.id ?? "__new__"}` prop on the dialog so useState initializer runs on each transition (avoids the `react-hooks/set-state-in-effect` lint rule that flags `setState` inside `useEffect`).
+   142→- Authored `src/components/revkit/references-page.tsx` (named export `ReferencesPage`):
+   143→  - Header: "References" title with `FileText` icon, count Badge, "Import references" Button, screening Select (All / Included / Excluded / Maybe / Pending, each with live count).
+   144→  - Table columns: Title (truncated with full text on hover via Tooltip, plus DOI link sub-line), Authors (hidden on mobile), Year (hidden on small), Journal (hidden on lg), Decision Badge (green/amber/rose/gray, plus exclude reason sub-text), Actions DropdownMenu.
+   145→  - Row actions: Include, Maybe, Exclude…, separator, Promote to study, Delete — wired to store mutations exactly per spec (Include/Maybe set `decision` + `stage: "title_abstract"`; Exclude… opens small dialog with `EXCLUDE_REASONS` Select; Promote calls `promoteReferenceToStudy` and toasts the new study label; Delete confirms via AlertDialog).
+   146→  - Import dialog with two Tabs:
+   147→    - Paste RIS: drag-and-drop zone (click + drop) accepting `.ris`/`.txt` files read via `await file.text()`; `<Textarea>` for direct paste; live preview "Parsed N records. First: <title>"; on Confirm calls `addReferences` with parsed array and toasts "Imported X records, Y duplicates skipped" (uses the store's dedup count).
+   148→    - Manual entry: title/authors/year/journal/doi form → `addReferences` with single entry.
+   149→  - RIS parser (`parseRis`): splits on `^ER\s*-\s?`, parses `XX  - value` tag pairs (tag is 2 chars + `  - `), supports continuation lines (subsequent non-tag lines append to the previous tag value), collects multiple AU/A1/A2/A3 lines into one "Author One; Author Two" string, prefers TI→T1→ST for title, JO→JF→JA→J1 for journal, PY→Y1→DA (regex `\d{4}`) for year, DO for DOI, stores rawRis per record. Skips empty records.
+   150→  - Summary footer with quick counts (included / maybe / excluded / pending).
+   151→  - Same `key`-prop remount pattern for `ImportDialog` and `ExcludeDialog` to avoid `react-hooks/set-state-in-effect`.
+   152→- Lint cleanup: First `bun run lint` flagged 3 `react-hooks/set-state-in-effect` errors in my code (one per useEffect that called setState to sync from props). Replaced all three with the React-recommended `key`-prop remount pattern: parent passes a changing `key` so the child's useState initializer runs with fresh props on each open/transition, eliminating the useEffect entirely.
+   153→- Final lint: `studies-page.tsx` and `references-page.tsx` are clean (`bunx eslint` zero output). `bunx tsc --noEmit` clean for both files. Remaining `bun run lint` errors are all pre-existing in other files (`dta/calculator-dialog.tsx`, `revkit/comparisons-page.tsx`, `revkit/welcome-screen.tsx`, `revkit/workspace-shell.tsx`) and out of scope for this task.
+   154→
+   155→Stage Summary:
+   156→- Two files delivered:
+   157→  - `/home/z/my-project/src/components/revkit/studies-page.tsx` — StudiesPage with table, add/edit dialog, delete AlertDialog, DTA-specific field highlights.
+   158→  - `/home/z/my-project/src/components/revkit/references-page.tsx` — ReferencesPage with table, screening filter (5 options), row actions (Include / Maybe / Exclude… / Promote / Delete), import dialog (paste RIS + manual entry + file drag-drop), client-side RIS parser, exclude-reason sub-dialog.
+   159→- Both files: strict TS (no `any`), all hooks inside components, only shadcn/ui primitives, Tailwind 4 mobile-first utilities, all mutations go through the Zustand store (which sets `isDirty=true`).
+   160→- UX decisions:
+   161→  - Used plain `<Table>` rather than TanStack Table — fewer abstractions for a flat list of studies/refs, lower bundle impact, matches the "keep it simple" hint in the task brief.
+   162→  - Added a Status select to the study form (not strictly listed in the spec's fields) because the table surfaces a Status column; without an editable status, the column would be misleading. Defaults to "included" for new studies (matches `promoteReferenceToStudy` behavior).
+   163→  - Added a Maybe filter option alongside the spec's All/Included/Excluded/Pending for finer-grained screening; "Pending" specifically means `decision === null` (not screened yet), not "Maybe".
+   164→  - Form state reset uses `key` prop + useState initializer (the React docs' recommended alternative to "reset state on prop change" via useEffect). This avoids the project's `react-hooks/set-state-in-effect` lint rule which otherwise fires on the useEffect-based reset pattern used elsewhere in the codebase.
+   165→  - Studies' DOI link wraps any value lacking an `http(s)` prefix with `https://doi.org/` so users can paste either bare DOIs or full URLs.
+   166→- Lint: clean for both new files. tsc: clean for both new files.
+   167→- Next: these pages are already wired into `src/app/page.tsx` (lines 89–90), so they appear when the user clicks the Studies / References sidebar entries in the WorkspaceShell.
+   168→
+   169→---
+   170→Task ID: 4-b
+   171→Agent: comparisons-data-entry
+   172→Task: Build ComparisonsPage (tree + outcomes + data entry grid) and DtaCalculator dialog.
+   173→Work Log:
+   174→- Read worklog + types.ts + state.ts + dta/calculate.ts + shadcn primitives to align on store API, Outcome/DataPoint shapes, and DtaResult format.
+   175→- Created `src/components/forest-plot/funnel-plot.tsx` and `src/components/forest-plot/sroc-plot.tsx` as small "rendering…" placeholders. (Task 5-a's full ForestPlot already exists at `forest-plot/forest-plot.tsx`; we don't touch it.)
+   176→- Created `src/components/dta/calculator-dialog.tsx`:
+   177→  - Controlled `<Dialog>` with `open` / `onClose` props; `initial?` seeds TP/FP/FN/TN; `onApply?` returns the four integer counts.
+   178→  - 2×2 grid of number inputs (TP top-left, FP top-right, FN bottom-left, TN bottom-right) + auto-computed Test+ / Test- / D+ / D- / N totals in the right column and bottom row.
+   179→  - Live results panel using `calculateDta` from `@/lib/dta/calculate` — Sens, Spec, PPV, NPV, LR+, LR-, Prevalence, DOR each formatted as `value (95% CI lower – upper)` (percent for proportions, 2-decimal for ratios).
+   180→  - Buttons: Reset (clears cells), Copy (writes `formatDtaResult` to clipboard), Cancel, OK. OK disabled when invalid.
+   181→  - Validation: non-negative integers; TP+FP+FN+TN > 0. Red border + inline hint when invalid.
+   182→  - HelpCircle tooltip explains the formulas (Wilson for proportions, log-based for ratios, 0.5 CC for variance only).
+   183→  - Architecture: split into `DtaCalculatorDialog` (renders `<Dialog>`) and `DtaCalculatorBody` (holds state). Body is mounted only when `open` is true, so `useState` re-seeds from `initial` on every open — no `useEffect` sync needed (avoids the React 19 `set-state-in-effect` lint error).
+   184→- Created `src/components/data-entry/data-grid.tsx`:
+   185→  - `DataGrid` named export, props `{ outcome: Outcome; subgroupId?: string | null }`.
+   186→  - Columns driven by `outcome.dataType`: DICHOTOMOUS (Events1/Total1/Events2/Total2), CONTINUOUS (Mean1/SD1/N1/Mean2/SD2/N2), OE_V (O−E, V), GIV (Effect, SE), DTA_2x2 (TP/FP/FN/TN + 🧮 calc column).
+   187→  - Each cell is an `<EditableCell>` with local draft state — controlled input whose displayed value derives from `props.value` when not being edited, and from `draft` while editing. `onBlur` commits via `setDataPointValue`. No `useEffect` sync — external store updates (paste, DTA calculator apply) flow through the prop directly.
+   188→  - Validation: red border when events1 > total1 (or vice versa), events2 > total2, or negative SD.
+   189→  - "Add row" form at the bottom: a separate `AddRowForm` component keyed by `outcome.id` + `subgroupId` so it remounts (and resets its Select) cleanly when the user switches outcomes — again no `useEffect`.
+   190→  - Study selector from `review.studies`; if empty, inline notice "Add studies first from the Studies tab."
+   191→  - DTA 2x2: 🧮 button opens `DtaCalculatorDialog` pre-filled with the row's TP/FP/FN/TN; on OK, calls `upsertDataPoint` to write all four cells atomically.
+   192→  - Paste-from-Excel: `onPaste` on each cell parses tab-separated values and commits each to the corresponding subsequent cell in the same row (per spec's "keep it simple, support pasting into the focused input" fallback).
+   193→  - Delete row via small Trash2 icon button.
+   194→- Created `src/components/revkit/comparisons-page.tsx`:
+   195→  - `ComparisonsPage` named export. Two-column layout (`grid grid-cols-[280px_1fr]` on lg+, single column on mobile).
+   196→  - Left: Card with header + inline add-comparison form (Input + Add button). Tree of `ComparisonNode` → `OutcomeNode` → subgroup rows. Each comparison has ChevronRight/Down toggle, Edit (inline rename), Delete (x), Add outcome. Each outcome row shows a type pill (e.g. "DTA", "Dich"), clicks to select (emerald-100 highlight), and has Add subgroup / Edit / Delete buttons. Subgroups have inline rename + delete.
+   197→  - Right: `OutcomeDetail` Card with name + badges (dataType, effectMeasure, method, model with color-coded fixed/random pill, optional unit/time-frame) + Edit button. Tabs: Data Entry | Forest Plot | Funnel Plot (or SROC Plot for DTA_2x2) | Subgroups. Data Entry renders `<DataGrid outcome={outcome} />`; Forest/Funnel/SROC render the imports from `forest-plot/*`.
+   198→  - Empty state: `EmptyDetail` card with intro copy when no outcome selected.
+   199→  - Add/Edit Outcome dialog: name, dataType, model (Fixed/Random), effectMeasure, method, unit, timeFrame. Changing dataType snaps defaults per spec (DICHOTOMOUS→OR/MH/fixed, CONTINUOUS→MD/IV/fixed, DTA_2x2→SENSITIVITY/LOGIT_UNIVARIATE/random, OE_V→PETO_OR/PETO/fixed, GIV→OR/IV/fixed). Method/Effect options restricted per dataType (e.g. OE_V: method=PETO only).
+   200→  - Single `<AlertDialog>` handles all three delete kinds (comparison / outcome / subgroup) with cascading-delete description.
+   201→  - Selection logic: `handleSelectOutcome(id, comparisonId)` both selects the outcome and auto-expands its parent comparison (no `useEffect`). `confirmDelete` clears `selectedOutcomeId` when an outcome is deleted (no `useEffect`). This avoids all `react-hooks/set-state-in-effect` lint errors.
+   202→- Ran `bun run lint` and `bunx tsc --noEmit` — both clean for all 4 new files (3 pre-existing errors in `welcome-screen.tsx` / `workspace-shell.tsx` are out of scope per the task brief).
+   203→
+   204→Stage Summary:
+   205→- 4 files created (all `"use client"`, strict TS, no `any`):
+   206→  - `/home/z/my-project/src/components/dta/calculator-dialog.tsx` — `DtaCalculatorDialog` named export, 2×2 grid + live CI results + Reset/Copy/OK/Cancel.
+   207→  - `/home/z/my-project/src/components/data-entry/data-grid.tsx` — `DataGrid` named export, per-dataType columns, draft-state EditableCell, AddRowForm, paste-from-Excel, DTA calculator hook.
+   208→  - `/home/z/my-project/src/components/revkit/comparisons-page.tsx` — `ComparisonsPage` named export, 280px tree + outcome detail with 4 tabs.
+   209→  - `/home/z/my-project/src/components/forest-plot/funnel-plot.tsx` + `sroc-plot.tsx` — placeholder stubs so the ComparisonsPage imports cleanly while Task 5-a finishes the real renderers.
+   210→- All mutations go through the Zustand store (no direct DB). Empty states handled for no-comparisons, no-outcome-selected, no-data-points, no-studies.
+   211→- Lint: clean. tsc: clean for new code.
+   212→- Ready for Task 5-a (forest/SROC/funnel plot implementation) and downstream workspace integration.
+   213→
+   214→---
+   215→Task ID: 5-a
+   216→Agent: forest-sroc-funnel-plots
+   217→Task: Build ForestPlot, DtaForestPlot, SrocPlot, FunnelPlot SVG components.
+   218→Work Log:
+   219→- Read worklog + stats engine (`src/lib/stats/{normal,effect,pooling,dta,index}.ts`) to confirm the PooledEffect / Effect / DtaStudy shapes and the `pool()` dispatcher's quirks (it switches on `effectMeasure` first, so OE_V/GIV data must be routed by calling `oeV()` / `genericEffect()` directly — the `computeEffect("OE_V", "PETO_OR", …)` form in the spec doesn't actually reach the OE_V branch).
+   220→- Created `src/components/forest-plot/plot-utils.ts` (277 lines, pure TS, no React):
+   221→  - `wilsonCI(x, n, z=1.96)` — Wilson score 95% CI for binomial proportions (used by DTA per-study sens/spec).
+   222→  - `invLogit(x)` — logistic back-transform with overflow-safe exp.
+   223→  - `withDtaCc(s)` — 0.5 continuity correction when any DTA cell is 0 (mirrors the private helper inside `lib/stats/dta.ts`, so DTA forest plot can recompute per-study logit/SE for weight derivation).
+   224→  - `logTicksOriginal`, `snapLogRange`, `linearTicks`, `snapLinearRange` — tick generation + range snapping for log/linear axes.
+   225→  - `formatNumber`, `formatPercent`, `formatP`, `formatEffectWithCI` — display formatters.
+   226→  - `downloadSVG`, `downloadPNG` — serialize the SVG node via `XMLSerializer`, clone + inject `xmlns` so the serialized blob renders standalone; PNG path draws into a 2× offscreen canvas with a white background and exports via `canvas.toBlob`.
+   227→  - `slugify` — filename stem builder.
+   228→- Created `src/components/forest-plot/pooling.ts` (179 lines, pure TS) — shared per-study effect builder + pooling dispatcher used by both `ForestPlot` and `FunnelPlot`. Routing per spec:
+   229→  - MH + dichotomous OR → `mantelHaenszelOR`, RR → `mantelHaenszelRR`, otherwise IV fixed.
+   230→  - PETO + OE_V data → IV fixed on the per-study (theta=oE/v, se=1/sqrt(v)) effects — mathematically identical to `petoPooling` since the IV weight (1/se² = V) equals the canonical Peto weight.
+   231→  - PETO + dichotomous PETO_OR → `petoPooling` on reconstructed {O,E,V} per study (O=a, E=n1·(a+c)/N, V=n1·n2·(a+c)·(b+d)/(N²·(N−1))).
+   232→  - DL or random-model-with-IV/MH → `derSimonianLaird`.
+   233→  - Default IV → `inverseVarianceFixed`.
+   234→  - Also exports `buildPerStudyEffects` (DICHOTOMOUS/CONTINUOUS/OE_V/GIV dispatcher), `outcomeIsLogScale`, and `effectMeasureLabel`.
+   235→- Replaced `src/components/forest-plot/forest-plot.tsx` (was a stub) with a full RevMan-style `ForestPlot` (452 lines, `"use client"`):
+   236→  - Layout: 900-px viewBox, dynamic height = 178 + N·26 (header + N rows + pooled diamond + axis + heterogeneity text).
+   237→  - Columns: study label (with year in parens) · two arm columns (events/total for dichotomous; mean±sd·n for continuous; O−E/V for OE_V; Effect/SE for GIV) · plot area (380→700) · Effect [95% CI] · Weight %.
+   238→  - Per-study effect: `buildPerStudyEffects` calls `computeEffect` (or `oeV`/`genericEffect` directly for OE_V/GIV).
+   239→  - Pooled diamond: emerald-700 (#047857) polygon 14px tall, width = CI range, with outward-pointing arrowheads if the CI extends beyond the snapped axis range.
+   240→  - X-axis: log-scale ticks are powers-of-2 (0.0625…32), auto-snapped outward by 1 power to enclose all CIs; linear-scale ticks via `linearTicks` (step from {1, 2, 5} × 10^k).
+   241→  - Null-effect line: dashed vertical at x=0 (log-scale log(1)) or x=0 (linear).
+   242→  - Out-of-range CIs: CI line clipped to plot edge with a left/right arrowhead (size 5) drawn at the edge.
+   243→  - Heterogeneity annotation: "Heterogeneity: τ² = X.XX; χ² = X.XX, df = N (P = 0.XX); I² = XX%".
+   244→  - Overall-effect test: "Test for overall effect: Z = X.XX (P = 0.XX)".
+   245→  - Header: outcome name + " · {EffectMeasure} · {Method} · {model} model".
+   246→  - Square box side = 4 + 12·√(weight/maxWeight) — AREA ∝ weight, per spec.
+   247→  - Empty states: DTA_2x2 outcome → "Use the DTA Forest Plot"; no data → "Add studies and data points to see the forest plot."
+   248→- Created `src/components/forest-plot/dta-forest-plot.tsx` (433 lines, `"use client"`):
+   249→  - Two side-by-side mini forest plots in one 1080-px SVG: Sensitivity (left, x=0..540) and Specificity (right, x=540..1080).
+   250→  - Per-study prop + 95% CI via `wilsonCI` (TP/(TP+FN) for sens, TN/(TN+FP) for spec).
+   251→  - Pooled point + heterogeneity via `univariateLogitSensitivity` / `univariateLogitSpecificity` (random = `outcome.model === "random"`).
+   252→  - Per-study weights: re-derived by replicating the engine's logit pooling — calls `inverseVarianceFixed` or `derSimonianLaird` on the same logit/SE inputs and reads `.weight[]` (the spec's `UnivariateSensitivity` interface doesn't expose weights).
+   253→  - X-axis: 0–100% linear, ticks at 0, 25, 50, 75, 100.
+   254→  - Pooled diamond + per-panel heterogeneity annotation per panel.
+   255→  - Acceptance case verified: single study TP=80/FP=10/FN=20/TN=90 → Sens 80.0% CI [71.1%, 86.7%] (Wilson) and [71.0%, 86.7%] (logit pooled) — both match the expected "~70-87%".
+   256→- Created `src/components/forest-plot/sroc-plot.tsx` (360 lines, `"use client"`):
+   257→  - 640×680 viewBox, plot area 80px margins.
+   258→  - X-axis: 1 − Specificity (FPR, 0→1). Y-axis: Sensitivity (TPR, 0→1).
+   259→  - Each study: circle radius 3 + 9·√(n/maxN), fill sky-500 with 0.45 opacity so overlapping studies are visible; `<title>` tooltip with study label + sens/spec/n.
+   260→  - HSROC summary curve: 100-point polyline sampled from `hsroc(studies).{alpha,beta}` — for each fpr ∈ [0.005, 0.995], `logit(sens) = α + β·logit(fpr)`, back-transformed with `invLogit`.
+   261→  - Summary operating point: from `univariateLogitSensitivity.pooled.sens` + `univariateLogitSpecificity.pooled.spec`, drawn as a red circle at (1−spec, sens) with a dashed crosshair spanning the full plot area and a 95% CI rectangle (x ∈ [1−specCIUpper, 1−specCILower], y ∈ [sensCILower, sensCIUpper]).
+   262→  - Chance diagonal (0,0)→(1,1) as a dashed line.
+   263→  - Grid lines at 0, 0.2, 0.4, 0.6, 0.8, 1.0 on both axes.
+   264→  - Legend (study / HSROC curve / summary point + 95% CI) in the top-left corner.
+   265→- Created `src/components/forest-plot/funnel-plot.tsx` (300 lines, `"use client"`):
+   266→  - 640×560 viewBox, plot area 70/40/60/60 margins.
+   267→  - X-axis: per-study theta (log-scale for ratios, linear for differences). Y-axis: standard error (inverted — se=0 at top, maxSE at bottom).
+   268→  - Each study: 4px circle at (theta, se) with sky-500 fill.
+   269→  - Pooled-effect vertical line: dashed red at `pooled.effect` (theta scale).
+   270→  - Pseudo 95% CI triangle: light-gray fill between apex (pooled, 0) and base corners (pooled ± 1.96·maxSE, maxSE); the two diagonals drawn as dashed lines.
+   271→  - Asymmetry note at the bottom of the plot: "Asymmetry (studies clustering outside the funnel) suggests potential publication bias."
+   272→  - Pooled effect uses the same `poolOutcomeEffects` dispatcher as ForestPlot — passes the actual dichStudies array so MH/Peto pooling is honored (per spec: vertical line at pooled effect).
+   273→- Ran `bun run lint`: 0 errors in any of the 6 new files. The 2 remaining errors are pre-existing in `src/components/revkit/welcome-screen.tsx` and `src/components/revkit/workspace-shell.tsx` (other agents' code, `react-hooks/set-state-in-effect` rule — out of scope).
+   274→- Ran `bunx tsc --noEmit`: 0 errors in any of the 6 new files. Pre-existing errors in `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/app/page.tsx` (missing `rob-page`/`prisma-page`/`export-page`/`settings-page` from other incomplete tasks), and `src/components/revkit/{welcome-screen,workspace-shell}.tsx` are unrelated to this task.
+   275→- Sanity script (`/tmp/test-pool.mjs`) verified:
+   276→  - Single DTA study TP=80/FP=10/FN=20/TN=90 → pooled sens 0.8000, CI [0.7102, 0.8672] (logit scale) — matches Wilson [0.7112, 0.8666] within rounding, matches spec expected "~70-87%".
+   277→  - 5-study DTA pool → fixed sens 0.7340 (Q=24.42, I²=83.6%), random sens 0.7595 (τ²=0.2937) — sensible heterogeneity-aware divergence.
+   278→  - HSROC fit on 5 studies: α=−1.18, β=−1.15 (asymmetric, |β−1|>0.5); summary point anchored at logit(FPR)=0 (spec=0.5).
+   279→  - MH and IV-fixed OR agree to 4 decimals on a 3-study dichotomous test (1.6762 vs 1.6759) — MH variance formula returns a wider CI than IV but that's the engine's behavior, not the plot's.
+   280→
+   281→Stage Summary:
+   282→- 6 files delivered (all `"use client"` where applicable; pure-TS utilities are React-free):
+   283→  - `/home/z/my-project/src/components/forest-plot/plot-utils.ts` — Wilson CI, invLogit, withDtaCc, log/linear tick generators, range snappers, formatters, `downloadSVG`/`downloadPNG` serializers.
+   284→  - `/home/z/my-project/src/components/forest-plot/pooling.ts` — shared `buildPerStudyEffects` + `poolOutcomeEffects` dispatcher (MH/Peto/IV/DL with random-model override) + `outcomeIsLogScale` + `effectMeasureLabel`.
+   285→  - `/home/z/my-project/src/components/forest-plot/forest-plot.tsx` — `ForestPlot` named export, intervention-review forest plot (dichotomous/continuous/OE_V/GIV), RevMan-style layout, square boxes ∝ weight, pooled diamond, heterogeneity + overall-effect annotations, Download SVG / PNG buttons.
+   286→  - `/home/z/my-project/src/components/forest-plot/dta-forest-plot.tsx` — `DtaForestPlot` named export, two-panel sensitivity/specificity mini forest plots (Wilson per-study, logit-pooled diamond).
+   287→  - `/home/z/my-project/src/components/forest-plot/sroc-plot.tsx` — `SrocPlot` named export, SROC plot with HSROC summary curve, summary point + 95% CI rectangle, chance diagonal, study circles ∝ √n.
+   288→  - `/home/z/my-project/src/components/forest-plot/funnel-plot.tsx` — `FunnelPlot` named export, SE-inverted funnel with pseudo-95% CI triangle, pooled-effect vertical line, asymmetry note.
+   289→- All 4 plot components: pure SVG (no D3 library, no `any`), `width="100%"` + `preserveAspectRatio="xMidYMid meet"` + dynamic viewBox for responsiveness, Download SVG + Download PNG buttons in the top-right of each plot's container.
+   290→- All components read studies from `useReviewStore` when the optional `studies` prop is omitted; hooks are called unconditionally before any early-return.
+   291→- Acceptance criteria verified:
+   292→  - Single DTA study TP=80/FP=10/FN=20/TN=90 → sensitivity panel shows 80.0% with Wilson CI [71.1%, 86.7%] (matches "~70-87%" in spec).
+   293→  - 5-study pool produces a sensible diamond (fixed 73.4%, random 75.9%, τ²=0.29, I²=84%).
+   294→- ESLint: 0 errors in new files (2 pre-existing errors in other agents' files, out of scope).
+   295→- TypeScript: 0 errors in new files.
+   296→- Next: integrate into the ComparisonsPage / outcome editor so users can flip between forest/DTA forest/SROC/funnel tabs per outcome. The components are importable as `import { ForestPlot, DtaForestPlot, SrocPlot, FunnelPlot } from "@/components/forest-plot/..."` — each from its own file per spec.
+   297→
+   298→---
+   299→Task ID: 6-a
+   300→Agent: rob-page
+   301→Task: Build RobPage (RoB 2 / ROBINS-I / QUADAS-2 editor + traffic-light + summary plots).
+   302→Work Log:
+   303→- Read worklog.md, src/lib/rob/config.ts, src/lib/types.ts, src/lib/project/state.ts, src/app/page.tsx, src/components/revkit/studies-page.tsx + comparisons-page.tsx + workspace-shell.tsx for context and styling conventions.
+   304→- Read shadcn primitives (dialog, sheet, radio-group, select, tabs, badge, card, checkbox, textarea, separator, tooltip) to verify prop APIs.
+   305→- Created `src/components/revkit/rob-page.tsx` (named export `RobPage`) — ~1216 lines.
+   306→- Layout:
+   307→  * Header: "Risk of Bias" title + filter Select (all / assessed / unassessed) + "X of Y studies assessed" badge.
+   308→  * Empty state: Card with FileText icon + "Add studies first from the Studies tab…" hint.
+   309→  * Study list: vertical stack of `StudyAssessmentCard`s. Each card shows label, year, design badge; lists existing assessments as compact rows (tool badge + colored overall-judgement pill + Edit/Delete); "+ Assessment" DropdownMenu lists applicable tools not yet assessed.
+   310→  * Traffic-light plot: pure SVG, one panel per tool, rows=studies cols=domains, colored circles via `judgementOption(tool, j).color`. Legend at top (union of judgement options across visible tools). `max-h-96 overflow-y-auto`. Clicking a study label or circle opens the editor and scrolls to the clicked domain.
+   311→  * Summary bar plot: stacked `<div>` flexbox bars per domain, toggle combined / by-tool. Buckets: Low (green), Some-concerns/Moderate/Serious (amber), High/Critical (red), Unclear/No-info (gray).
+   312→  * Editor Dialog (max-w-4xl, max-h-92vh): per-domain sections with quick-nav pills, signalling-question cards each containing a 5-option segmented AnswerPicker (Yes / Probably Yes / No / Probably No collapsed / No Info / N/A — icons ✓/✓/✗/?/Ban). Live domain pill + live overall pill + override checkbox + Select for override judgement + reason Textarea (note: reason is not persisted since RobAssessment type has no notes field).
+   313→- Robustness:
+   314→  * Tool dropdown filters by `ROB_TOOLS[t].appliesToReviewTypes.includes(review.type)` — non-applicable tools are hidden.
+   315→  * Delete via AlertDialog with full confirmation (tool + study label).
+   316→  * Save flow: `upsertRobAssessment({ id, studyId, tool, domainJudgements, signallingAnswers, overallJudgement })` then sonner toast.
+   317→- Code-quality:
+   318→  * Strict TypeScript, no `any`.
+   319→  * Refactored editor into `RobEditorDialog` (controls open/close + derives study/existing from store) + `RobEditorForm` (uses lazy useState initializers + parent `key` prop to reset state on each open, avoiding `setState`-in-effect warnings from React Compiler ESLint plugin).
+   320→  * All hooks at top level of each component.
+   321→  * shadcn/ui primitives only; Tailwind 4 utilities; mobile-first responsive grid (lg:grid-cols-2 for plots).
+   322→  * Domain/overall judgement colors sourced from `ROB_TOOLS[tool].judgementOptions[].color`.
+   323→- Acceptance:
+   324→  * `bunx tsc --noEmit` → 0 errors in `src/components/revkit/rob-page.tsx` (pre-existing errors in route.ts, welcome-screen.tsx, workspace-shell.tsx, state.ts, and missing modules for prisma/export/settings pages are out of scope).
+   325→  * `bun run lint` → 0 errors and 0 warnings in `src/components/revkit/rob-page.tsx` (2 pre-existing warnings in `prisma-page.tsx` are out of scope).
+   326→Stage Summary:
+   327→- File: `/home/z/my-project/src/components/revkit/rob-page.tsx` (1216 lines, named export `RobPage`).
+   328→- Wired into `src/app/page.tsx` line 9 (`import { RobPage } from "@/components/revkit/rob-page"`) and line 92 (`{tab === "rob" && <RobPage />}`). Already-imported, no wiring changes needed.
+   329→- All acceptance criteria met: header w/ filter + summary, empty state, study list with multi-tool support, full editor with live algorithms from `ROB_TOOLS[tool].algorithm`, traffic-light SVG, summary bar with toggle, AlertDialog delete confirm, no lint/TS errors introduced.
+   330→- Next: nothing required. If a future "RoB export to DOCX/CSV" task is added, this page exposes `review.robAssessments` directly through the store, so no API changes needed.
+   331→
+   332→---
+   333→Task ID: 7-a
+   334→Agent: prisma-export-pages
+   335→Task: Build PrismaPage (11-box PRISMA flow editor) and ExportPage (Word/CSV/PNG/SVG export).
+   336→Work Log:
+   337→- Read worklog + state.ts + types.ts + prisma-flow/template.ts + stats engine + forest-plot/pooling.ts + plot-utils.ts to understand the existing patterns (Zustand `setPrismaBox`/`initPrismaFlow` API; PRISMA 11-box template; pure-TS stats + formatters in `components/forest-plot/`).
+   338→- Confirmed `docx` and `jszip` npm packages are NOT installed — fell back to Word-compatible HTML for `.doc` export and to a single combined CSV file for the CSV export card (per the task spec's fallback instructions).
+   339→- Created `src/lib/export/download.ts` (133 lines, pure TS):
+   340→  - `triggerDownload(blob, filename)` — generic Blob → `<a download>` pattern with 1s deferred `URL.revokeObjectURL` so Safari/Edge have time to start the download.
+   341→  - `downloadText(filename, text, mime)` — text/CSV/JSON helper.
+   342→  - `csvEscape(value)` + `toCsv(rows)` — RFC 4180-ish CSV escaping (wrap + double inner quotes when value contains `,`/`"`/newline); rows joined with `\r\n` for Excel friendliness.
+   343→  - `slugify(s)` — filename stem builder (lowercase, collapse non-`[a-z0-9]+` to `-`, trim, fallback `"revkit"`).
+   344→  - `downloadSVGElement(svg, filename)` — clones the SVG, injects `xmlns`/`xmlns:xlink`, serializes via `XMLSerializer`, downloads as `.svg`.
+   345→  - `downloadPNGFromSVG(svg, filename)` — rasterizes the SVG via an offscreen canvas at 2× viewBox dimensions with a white background; exports via `canvas.toBlob("image/png")`.
+   346→- Created `src/lib/export/csv.ts` (298 lines, pure TS):
+   347→  - `buildStudiesCsv(review)` → header + 1 row per study (id, label, year, authors, doi, design, status, indexTest, referenceStandard).
+   348→  - `buildReferencesCsv(review)` → id, title, authors, year, journal, doi, pmid, decision, excludeReason.
+   349→  - `buildDataPointsCsv(review)` — walks every outcome in every comparison (including subgroups) and emits 1 row per data point with comparisonName/outcomeName/studyLabel context + all 17 numeric fields (events1/total1/events2/total2, mean1/sd1/n1/mean2/sd2/n2, oE/v, effect/se, tp/fp/fn/tn).
+   350→  - `buildRobAssessmentsCsv(review)` — studyId/studyLabel/tool/overallJudgement + `JSON.stringify(domainJudgements)` + `JSON.stringify(signallingAnswers)`.
+   351→  - `buildPrismaFlowJson(review)` — falls back to canonical 11-box template with 0 counts when the review has no flow.
+   352→  - `buildCombinedCsv(review)` — concatenates all four tables with `# Section: <name>` header rows + blank separators, plus a JSON-stringified PRISMA flow row at the end. This is the simplest fallback when `jszip` is unavailable.
+   353→  - `buildIndividualCsvFiles(review)` — flat list of `{filename, content, mime}` for future jszip-based zipping.
+   354→- Created `src/lib/export/docx.ts` (409 lines, pure TS):
+   355→  - `exportReviewAsDoc(review)` — generates a `.doc` file via Word-compatible HTML (MIME `application/msword`), filename `<slugified-title>.doc`. Since `docx` is not installed, this is the cleanest fallback.
+   356→  - `buildReviewHtml(review)` — full HTML document with `@page WordSection1` styles, `<w:WordDocument>` MSO XML for Word-view-mode hints, Calibri 11pt body, table styling with `#cbd5e1` borders and `#f1f5f9` header backgrounds.
+   357→  - Title page: review title, type/sub-type/phase badges, ID, created/updated dates.
+   358→  - Abstract: auto-generated paragraph from review summary counts (# studies, # references included/excluded, # comparisons, # outcomes).
+   359→  - Background: research question.
+   360→  - Methods: nested `<ul>` per comparison → outcomes (with effectMeasure/method/model/dataType/unit/timeFrame), plus a `<p>` listing distinct study designs.
+   361→  - Results: per-outcome table — walks every outcome, calls `buildPerStudyEffects` + `poolOutcomeEffects` (the same dispatcher the ForestPlot uses, supporting MH/Peto/IV/DL with random-model override), and emits pooled effect + 95% CI + I² + p(effect) + p(heterogeneity) + Z + τ². Uses `formatEffectWithCI`/`formatNumber`/`formatP` from `plot-utils`.
+   362→  - Risk of Bias: table per assessment (study label, tool, overall judgement, domain judgements list).
+   363→  - PRISMA flow: 11-row table (box id, label, count, source auto/manual, stage).
+   364→  - References: numbered `<ol>` with DOI links + PMID + decision badge.
+   365→- Created `src/components/revkit/prisma-page.tsx` (815 lines, `"use client"`):
+   366→  - Single SVG canvas (820×940 viewBox) with 4 swimlane background bands colored per stage (slate/blue/amber/emerald).
+   367→  - 11 boxes positioned in 5 rows: row 1 = id_db + id_other (top), row 2 = id_dedup (centered) + id_autoexcl (right), row 3 = scr_screened + scr_excluded, row 4 = elig_sought + elig_notretrieved, row 5 = elig_assessed + elig_excluded, row 6 = inc_review (centered).
+   368→  - Arrows via SVG `<path>` + `<marker>` arrowhead: `merge` (inverted-Y from id_db + id_other into id_dedup), `L-down` (id_dedup → scr_screened, elig_assessed → inc_review), `vertical` (scr_screened → elig_sought, elig_sought → elig_assessed), `horizontal` (side arrows to all "excluded"/"removed"/"not retrieved" boxes).
+   369→  - Box rendering: rounded rect 200×80 with stage-colored fill/stroke/text, label split into 1-2 balanced lines (smart split that targets equal-length halves), large bold count number centered below, small green dot in the top-right corner when `autoCount` is true.
+   370→  - Click any box → EditBoxDialog (shadcn Dialog) with: "Auto-count from review" Checkbox, read-only display of `computePrismaCountsFromReview(review)[boxId]` when auto (or a number `<Input>` when manual), Cancel/Save buttons that call `setPrismaBox(boxId, count, autoCount)`.
+   371→  - Used the `key={boxId}` pattern on the dialog (parent conditionally renders `{editingBox && <EditBoxDialog key={editingBox} ... />}`) so the local draft state re-initializes cleanly on box change — avoids `react-hooks/set-state-in-effect` lint errors entirely.
+   372→  - Seeding `useEffect`: if `review.prismaFlow` is null or empty, build `createEmptyPrismaFlow(review.id)`, call `computePrismaCountsFromReview`, and seed all 11 boxes with `setPrismaBox(boxId, count, true)`. Guarded by `[review?.id, review?.prismaFlow?.boxes.length]` so it runs once.
+   373→  - "Auto-fill from review state" button — recomputes all 11 counts and sets `autoCount=true` for each. Toast: "PRISMA flow auto-filled from review state".
+   374→  - "Reset to 0" button — opens `AlertDialog` confirm → sets all 11 boxes to count=0, autoCount=false. Toast: "PRISMA flow reset".
+   375→  - "SVG" and "PNG" download buttons — call `downloadSVGElement`/`downloadPNGFromSVG` on the live `<svg>` ref.
+   376→  - "View full screen" Sheet (shadcn Sheet) — renders the same `PrismaDiagram` at a larger viewport (visible on mobile via a hidden button on `sm:` breakpoint).
+   377→  - Legend below the diagram showing the 4 stage colors + the auto-count dot indicator.
+   378→  - Counts summary table (shadcn Table) with columns: Stage / Label / Count / Source (auto/manual badge).
+   379→- Created `src/components/revkit/export-page.tsx` (403 lines, `"use client"`):
+   380→  - 3 export cards in a `sm:grid-cols-2 lg:grid-cols-3` grid:
+   381→    - WordCard: blue-accented icon, "Export to Word" button → `exportReviewAsDoc(review)`, filename toast.
+   382→    - CsvCard: emerald-accented icon, "Export CSV" button → `buildCombinedCsv(review)` + `downloadText(...)`; footer shows counts (std/ref/dp/rob).
+   383→    - PlotCard: amber-accented icon, Select dropdown listing every (comparison → outcome) pair, renders `<ForestPlot outcome={selected} />` inline (ForestPlot has its own Download PNG/SVG buttons); shows an empty-state notice when there are no outcomes.
+   384→  - SettingsCard at the bottom (disabled "Coming soon" badge) showing placeholder Word formatting options (page size A4, margin 2.5 cm, font Calibri 11pt).
+   385→  - Privacy note card at the bottom: "no data leaves your browser. All exports are generated from the in-memory review state."
+   386→  - All exports toast on success ("Exported <filename>") and on error ("Export failed: <message>"); busy spinner (Loader2) for 300ms after click.
+   387→- Refactored `EditBoxDialog` to use the `key={boxId}` remount pattern instead of `useEffect`-based state sync (the original `set-state-in-effect` form triggered a lint error in this project's eslint config; the `key` pattern is the canonical React-recommended workaround and removes the need for the effect entirely). The computed count is now derived via `useMemo` (recomputes whenever the review changes), not state.
+   388→- Ran `bun run lint`: 0 errors, 0 warnings in any of the 5 new files. (No eslint-disable directives needed anywhere.)
+   389→- Ran `bunx tsc --noEmit`: 0 errors in any of the 5 new files. Pre-existing errors in `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/app/page.tsx` (missing settings-page from another agent's task), `src/components/revkit/{welcome-screen,workspace-shell}.tsx`, and `src/lib/project/state.ts` are unrelated to this task.
+   390→
+   391→Stage Summary:
+   392→- 5 files created (4 pure-TS / 1 client component + 1 client component):
+   393→  - `/home/z/my-project/src/lib/export/download.ts` — `triggerDownload`, `downloadText`, `csvEscape`, `toCsv`, `slugify`, `downloadSVGElement`, `downloadPNGFromSVG`. Pure TS, no React.
+   394→  - `/home/z/my-project/src/lib/export/csv.ts` — `buildStudiesCsv`, `buildReferencesCsv`, `buildDataPointsCsv`, `buildRobAssessmentsCsv`, `buildPrismaFlowJson`, `buildCombinedCsv`, `buildIndividualCsvFiles`. Pure TS, no React.
+   395→  - `/home/z/my-project/src/lib/export/docx.ts` — `buildReviewHtml`, `exportReviewAsDoc`. Pure TS, no React. Uses `buildPerStudyEffects` + `poolOutcomeEffects` from `components/forest-plot/pooling.ts` and `formatEffectWithCI`/`formatNumber`/`formatP` from `components/forest-plot/plot-utils.ts` so the Word export's Results table matches the ForestPlot's pooled effects exactly.
+   396→  - `/home/z/my-project/src/components/revkit/prisma-page.tsx` — `PrismaPage` named export. 11-box SVG diagram (820×940 viewBox) with 4 swimlane bands, all 11 boxes clickable, edit Dialog with auto-count toggle + manual count input, Auto-fill + Reset-to-0 (with confirm) + Download PNG/SVG buttons, "View full screen" Sheet, legend + counts summary table. Seeding effect initializes the flow from `createEmptyPrismaFlow` on first mount.
+   397→  - `/home/z/my-project/src/components/revkit/export-page.tsx` — `ExportPage` named export. Three-card grid (Word / CSV / Plot) + Settings card (coming soon) + Privacy note card. Plot card embeds `ForestPlot` with a Select dropdown over all outcomes. All exports toast on success/error.
+   398→- All mutations go through the Zustand store's `setPrismaBox` action. All file generation is client-side via `URL.createObjectURL` + `<a download>` (no API calls).
+   399→- ESLint: clean (0 errors, 0 warnings) on all 5 new files.
+   400→- TypeScript: clean on all 5 new files (0 errors introduced).
+   401→- Acceptance criteria verified: `bun run lint` and `bunx tsc --noEmit` both clean for the new code.
+   402→
+   403→---
+   404→Task ID: A-5
+   405→Agent: apple-wizard-redesign
+   406→Task: Redesign NewReviewWizard dialog with Apple design language.
+   407→Work Log:
+   408→- Read worklog.md, skills/design/design-systems/brand-inspiration/apple/DESIGN.md, and tokens.css to lock in Apple's 4-stop neutral ramp, single #0071e3 accent, tiered radius (8/12/18/980px), and cubic-bezier(0.28, 0, 0.22, 1) motion curve.
+   409→- Audited existing new-review-wizard.tsx — emerald-heavy shadcn default with Progress/Badge/Separator/Card/Button/Input/Textarea wrappers and emerald-600 CTAs.
+   410→- Cross-checked globals.css to confirm available Apple utilities (.btn-pill, .btn-pill-secondary, .eyebrow, .card-apple, .field-apple, .focus-halo, .transition-apple[-slow], .tracking-display, .bg-surface-apple, .bg-surface-warm, .text-meta, .text-fg-2). Confirmed --color-border-soft is NOT registered in @theme inline, so separators use arbitrary `border-[var(--border-soft)]` (#e8e8ed).
+   411→- Rewrote /home/z/my-project/src/components/revkit/new-review-wizard.tsx end-to-end:
+   412→  • Dropped unused shadcn primitives (Button, Card, Input, Textarea, Label, Badge, Separator, Progress, DialogFooter, FileText icon) — replaced with raw HTML + Apple utility classes for full control of the editorial look.
+   413→  • DialogContent: `max-w-2xl sm:max-w-2xl rounded-[18px] border border-border bg-background p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)]` — overrides shadcn's max-w-lg/p-6/rounded-lg defaults.
+   414→  • Header: blue eyebrow "NEW REVIEW" (11px uppercase tracking-0.08em #0071e3 600) → SF Pro Display title `font-display text-2xl font-semibold tracking-display` → description `text-sm text-fg-2 mt-1`.
+   415→  • Step indicator: 1px track `bg-surface-apple` + `bg-[#0071e3]` fill with `transition-apple-slow`, then `text-[11px] uppercase tracking-[0.08em] text-meta` "STEP 1 OF 4 / Choose type".
+   416→  • Step 1 — radio cards: `label.cursor-pointer` with `border-2 rounded-[18px] p-5 transition-apple`; selected = `border-[#0071e3] bg-[#0071e3]/5`; unselected hover = `border-[#0071e3]/40 bg-surface-warm`. RadioGroupItem visually hidden (`sr-only`) — icon tile (size-9 rounded-[10px]) doubles as the selection affordance, switching `bg-surface-apple text-fg-2` → `bg-[#0071e3]/10 text-[#0071e3]` when checked. Tool badges rendered as raw spans `text-[10px] text-meta bg-surface-apple rounded-full px-1.5 py-0.5`.
+   417→  • Step 2 — Select trigger: kept shadcn Select (for dropdown UX) but overrode trigger with `field-apple focus-halo h-auto w-full justify-between rounded-[8px] border-border bg-background px-3.5 py-3 text-[17px] shadow-none focus-visible:ring-0` to neutralize shadcn defaults and let field-apple's focus halo take over. Helper card: raw `div border border-dashed border-border bg-surface-warm rounded-[12px] p-4`.
+   418→  • Step 3 — Title input + research question textarea: raw `<input>`/`<textarea>` with `field-apple focus-halo` (textarea adds `min-h-[80px] resize-y`). Labels `text-[11px] uppercase tracking-[0.08em] text-meta font-semibold`; helper text `text-xs text-meta mt-2`.
+   419→  • Step 4 — Confirm summary: `card-apple space-y-3 p-5` with each row label (`text-xs uppercase tracking-[0.08em] text-meta`) left + value (`text-sm font-medium`) right. Separators are raw `border-t border-[var(--border-soft)]` divs (Apple's inner-row #e8e8ed hairline). Replaced the emerald Badge on type with a plain `text-sm font-medium` value to drop the secondary color.
+   420→  • Footer: Cancel = raw `<button>` text-only (`text-sm font-medium text-fg-2 transition-apple hover:text-foreground`); Back = `btn-pill-secondary` (transparent + hairline ring); Next/Create = `btn-pill` (Apple blue capsule). Both pills get `font-display tracking-display` for the machined-headline feel. Right-aligned via `justify-between` on the footer row.
+   421→  • Animations: kept existing framer-motion AnimatePresence (mode="wait", opacity+x slide), but swapped the transition to `{ duration: 0.22, ease: APPLE_EASE }` where `APPLE_EASE` is a typed `[number, number, number, number] = [0.28, 0, 0.22, 1]` constant — satisfies framer-motion v12's tuple typing for cubic-bezier eases.
+   422→  • All state logic (step, type, subType, title, rq) and handlers (next, back, finish, reset, close) preserved verbatim. Strict TypeScript, no `any`, "use client" directive retained.
+   423→- Ran `bun run lint` → clean (0 errors, 0 warnings).
+   424→- Ran `bunx tsc --noEmit` → no errors introduced in new-review-wizard.tsx (project has 7 pre-existing errors in unrelated files: route.ts, settings-page.tsx, welcome-screen.tsx, state.ts, and example/skills directories — none touch the wizard).
+   425→Stage Summary:
+   426→- NewReviewWizard is now an Apple-flavoured modal: pure white canvas, 18px radius, raised 12/32 shadow, hairline border, 8-padding interior, eyebrow + display title, Apple-blue progress bar, single #0071e3 accent throughout, no emerald, no shadcn Card/Badge/Separator chrome.
+   427→- All 4 steps (Choose type → Sub-type → Title & question → Confirm) and Create/Back/Cancel flow intact; framer-motion step transitions now run on Apple's cubic-bezier(0.28, 0, 0.22, 1) curve at 220ms.
+   428→- Acceptance criteria verified: `bun run lint` clean; no new TypeScript errors introduced in the file; mobile-first responsive (grid collapses 2→1 col at md breakpoint, dialog max-w-2xl + max-h-90vh + overflow-y-auto).
+   429→
+   430→---
+   431→Task ID: A-4
+   432→Agent: apple-workspace-redesign
+   433→Task: Redesign WorkspaceShell + OverviewPage with Apple design language.
+   434→
+   435→Work Log:
+   436→- Read worklog.md (project context) and Apple design system files (DESIGN.md + tokens.css) to internalize the brand language: single Apple Action Blue (#0071e3) accent, SF Pro Display/Text typography, 4-stop neutral ramp (#1d1d1f → #86868b), tiered radius (8/12/18/980px), restrained elevation, cubic-bezier(0.28, 0, 0.22, 1) motion.
+   437→- Audited existing workspace-shell.tsx (537 LOC) and confirmed globals.css already exposes the Apple utility classes (.btn-pill, .card-apple, .field-apple, .eyebrow, .band-*, .scrollbar-apple, .focus-halo, .transition-apple, surface/foreground utilities).
+   438→- Top bar redesign: replaced `bg-background/95 backdrop-blur sticky` with Apple frosted glass `bg-background/80 backdrop-blur-xl`; tightened padding to `px-4 sm:px-6 py-3`; swapped emerald Save button for `.btn-pill` Apple capsule (always visible, disabled when clean per Apple toolbar consistency rule); Library back button now a chevron-led text-only ghost link (`text-fg-2 hover:text-foreground`); title uses `font-display font-semibold tracking-display text-base`; type label is an Apple eyebrow (`text-[11px] uppercase tracking-[0.08em] text-meta`); phase badge is an Apple-blue pill (`bg-[#0071e3] text-white rounded-full`); dirty indicator is now a tiny 1.5px Apple-blue dot.
+   439→- Sidebar redesign: dropped the mobile-collapsed `w-14` for a desktop-first `w-56`; surface switched to `bg-surface-warm` (#fbfbfd); nav items use Apple-system `text-[14px]` with active state `bg-[#0071e3]/10 text-[#0071e3] font-medium`, inactive `text-fg-2 hover:bg-surface-apple hover:text-foreground`; badges now right-aligned Apple metadata (`ml-auto text-[11px] text-meta font-medium`); footer preserves version/format/review-id as Apple fine-print.
+   440→- Main content area: padded to `p-6 md:p-10` with `max-w-5xl mx-auto` reading measure; kept framer-motion AnimatePresence page transitions (opacity + 8px y offset, 150ms).
+   441→- Overview page redesign:
+   442→  * Page header now uses Apple eyebrow → display headline → subhead pattern (eyebrow "OVERVIEW" in Apple blue 11px uppercase 0.08em tracking; H1 in `font-display text-3xl md:text-4xl font-semibold tracking-display`).
+   443→  * Phase stepper rebuilt as Apple segmented control: `.card-apple p-6` card, custom `h-1 bg-surface-apple` progress bar with `bg-[#0071e3]` fill, phase pills with `rounded-full px-3 py-1 text-[12px] font-medium transition-apple` — active solid blue, completed `bg-[#0071e3]/10 text-[#0071e3]` with CheckCircle2, future `bg-surface-apple text-meta`.
+   444→  * Editable fields now live in `.card-apple p-6` cards on a `sm:grid-cols-2 gap-5` grid; inputs use `.field-apple` class directly (Apple border-led, blue focus halo); labels are Apple eyebrows (`text-[11px] uppercase tracking-[0.08em] text-meta font-semibold`).
+   445→  * Quick stats replaced emerald numerals with Apple-blue KPI tiles (`font-display text-4xl font-semibold text-[#0071e3] tracking-display`) over `text-[11px] uppercase tracking-[0.08em] text-meta` labels.
+   446→  * Reference screening bars use Apple semantic colors: success #16a34a, warning #eab308, danger #dc2626, neutral #86868b — on `h-1.5 rounded-full bg-surface-apple` track.
+   447→  * Demo data loader card: `.card-apple border-dashed bg-surface-warm` with Apple-blue icon tile (`size-10 rounded-xl bg-[#0071e3]/10 text-[#0071e3]`); CTA is a smaller `.btn-pill` (`px-4 py-1.5 text-[13px]`).
+   448→- Code-quality pass: removed unused imports (Badge, Card, Progress, Select family, useState, ArrowLeft); added ChevronLeft for back button; typed NAV array explicitly; tightened ReviewState hook usage; preserved all existing functionality (handleSave fetch + markSaved + recent-files mirror, beforeunload handler, phase stepper logic, demo data loader). All emerald/amber/rose literals replaced with Apple tokens.
+   449→- Verified with `bun run lint` → clean (eslint passes with zero warnings/errors). `bunx tsc --noEmit` shows no errors in workspace-shell.tsx (remaining TS errors in repo are pre-existing in unrelated files: route.ts, settings-page.tsx, welcome-screen.tsx, state.ts, skills/, examples/).
+   450→
+   451→Stage Summary:
+   452→- workspace-shell.tsx fully restyled to Apple design language; both `WorkspaceShell` and `OverviewPage` exports retain identical prop shapes and behavior, so no caller-side changes are required.
+   453→- All emerald/amber/rose brand-mismatched colors removed in favor of `#0071e3` (Apple Action Blue) plus Apple semantic palette (#16a34a / #eab308 / #dc2626 / #86868b) for the reference screening chart.
+   454→- Typography now uses SF Pro stack via `font-display` + `tracking-display` on headings and `text-[11px] uppercase tracking-[0.08em]` eyebrows throughout, with `text-meta` (#86868b) for secondary labels.
+   455→- Surfaces honor Apple's 3-tier ladder: `bg-background` (#ffffff) main canvas, `bg-surface-warm` (#fbfbfd) sidebar + dashed demo card, `bg-surface-apple` (#f5f5f7) hover states and progress tracks.
+   456→- Top bar uses Apple frosted-glass `bg-background/80 backdrop-blur-xl` with hairline `border-b border-border`; Save button is the signature `.btn-pill` capsule (always visible, disabled state uses the .btn-pill:disabled opacity:0.4 from globals.css).
+   457→- Sidebar is desktop-first `w-56` with Apple-blue tint active state; nav badges use right-aligned `text-meta` metadata style.
+   458→- Main content area uses `max-w-5xl mx-auto p-6 md:p-10` reading measure with `scrollbar-apple` on scrollables; framer-motion AnimatePresence page transitions preserved (150ms opacity + y:8).
+   459→- Lint clean; no TypeScript regressions introduced.
+   460→
+   461→---
+   462→Task ID: A-3
+   463→Agent: apple-welcome-redesign
+   464→Task: Redesign WelcomeScreen with Apple design language.
+   465→
+   466→Work Log:
+   467→- Read project context (`worklog.md`), Apple `DESIGN.md` + `tokens.css`, existing `welcome-screen.tsx`, `globals.css`, `tailwind.config.ts`, shadcn `Card`/`Badge`/`Skeleton`/`Button` primitives, and `lib/types.ts` to confirm `ReviewType` / `ReviewSubType` union shape (so the welcome-screen flow can narrow `subType: ReviewSubType` → `subType: null` cleanly without `any`).
+   468→- Baseline-check: `bun run lint` clean (0 errors / 0 warnings). `bunx tsc --noEmit` showed 8 pre-existing errors across `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/components/revkit/{settings-page,welcome-screen,workspace-shell}.tsx`, and `src/lib/project/state.ts`. Confirmed the pre-existing `welcome-screen.tsx` error was the `subType: ReviewSubType` → `subType: null` mismatch where the wizard's `onCreate` payload was passed straight through to `onNew` (Props contract expects `subType: null`).
+   469→- Rebuilt `/home/z/my-project/src/components/revkit/welcome-screen.tsx` (named export `WelcomeScreen`, `"use client"`) end-to-end. Structure, top to bottom:
+   470→  1. **Root**: `min-h-screen flex flex-col bg-background` — pure Apple white, emerald gradient removed entirely. `font-display` is applied automatically to all `h1`-`h4` via the `@layer base` rule already in `globals.css`, so headings inherit Apple SF Pro Display without an explicit class.
+   471→  2. **Sticky header** (slim Apple chrome): `border-b border-border-soft bg-background/80 backdrop-blur-md`, `max-w-5xl` container, hairline so it recedes. `RevKitLogo` (already-redesigned solid blue tile) at `size-7`, brand lockup with `tracking-display` title, uppercase `text-meta` subtitle. Right side carries the `v0.1.0 · MIT` meta and the `text-link` (Apple Body Link Blue) Cochrane-handbook link with `.focus-halo`.
+   472→  3. **Hero billboard**: `px-4 sm:px-6 lg:px-8 py-20 md:py-32` (≈ Apple's `--section-y-desktop: 100px`), centered `max-w-3xl mx-auto text-center`. Framer Motion fade-in with `ease: [0.28, 0, 0.22, 1]` (Apple's standard curve) over 550ms. Eyebrow `OPEN-SOURCE · COCHRANE-STYLE SYSTEMATIC REVIEWS` (CSS auto-uppercases via `.eyebrow`). H1 `text-5xl md:text-6xl font-semibold tracking-display leading-[1.07]` with `<br className="hidden sm:block" />` for the controlled two-line break. Subhead `text-xl text-fg-2 tracking-body max-w-2xl mx-auto leading-relaxed`. Two CTAs centered: primary `.btn-pill` "Create new review" + secondary `.btn-pill btn-pill-secondary` "Browse library" (scrolls to `#recent-saved`).
+   473→  4. **Action cards row**: 3 Apple tile cards in `grid sm:grid-cols-3 gap-4`. Each is a plain `<div className="card-apple p-8 hover:-translate-y-0.5 transition-apple-slow flex flex-col">` — chose `<div>` over shadcn `Card` because shadcn `Card` ships `shadow-sm rounded-xl py-6 gap-6` defaults that fight `.card-apple` (which deliberately renders flat with no shadow, 18px radius, hover-only `elev-raised`). Primary "New Review" card uses `bg-[#0071e3] text-white` on its 44px icon tile + an `.eyebrow` (blue); Open + Demo cards walk down to `bg-surface-apple text-fg-2` icon tiles and `.eyebrow text-meta` (gray) to honor the "Apple Action Blue only on the primary CTA card" rule. Each card has an uppercase eyebrow, 44px icon tile, `text-xl font-semibold tracking-display` heading, 2-line `text-sm text-fg-2 tracking-body line-clamp-2` description, and a full-width CTA button at the bottom (`mt-auto` so the buttons line up across cards of differing description heights). Primary card → `.btn-pill`; secondary cards → `.btn-pill btn-pill-secondary`.
+   474→  5. **Feature highlights strip**: `<section className="band-warm py-16 md:py-20">` (Apple's near-white `--surface-warm: #fbfbfd` band for chapter transition). 4 inline cards in `grid sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-10` — no borders between them, just whitespace (Apple's discipline). Each card is a 32px `bg-surface-apple text-fg-2` icon chip + `text-sm font-medium tracking-display` label + `text-xs text-meta tracking-body` description (Meta-analysis engine / Risk of bias / PRISMA 2020 / Exports).
+   475→  6. **Saved reviews library** (`#recent-saved`): eyebrow header "YOUR REVIEW LIBRARY" + `text-meta` count, then either Skeletons (loading), a 2-up grid of `.card-apple` review tiles, or an empty state. Each review tile is `card-apple p-5 hover:-translate-y-0.5 transition-apple-slow cursor-pointer group focus-halo` (with `role="button" tabIndex={0}` + `onKeyDown` Enter/Space handler for keyboard accessibility — the original `<Card onClick=…>` had no keyboard handler). Left tile is `size-12 rounded-lg bg-[#0071e3]/10 text-[#0071e3] group-hover:bg-[#0071e3] group-hover:text-white transition-apple` (soft Apple-blue tint that fills solid on hover). Title in `<h3 className="text-base font-medium tracking-display truncate">`. Metadata row: outline `Badge` for review type + secondary `Badge` for sub-type + secondary `Badge` for phase + `text-[10px] text-meta` date pushed `ml-auto`. Delete button is `opacity-0 group-hover:opacity-100 focus-visible:opacity-100` so it only appears on hover (or keyboard focus for accessibility), with `hover:text-destructive`, `.focus-halo`, `e.stopPropagation()` on click so it doesn't trigger the parent `onOpen`.
+   476→  7. **Empty state**: centered `py-20` block with a 40px `FolderOpen` in `text-meta`, `text-base font-medium tracking-display` title, `text-sm text-fg-2 tracking-body max-w-sm mx-auto` body, and a single `.btn-pill btn-pill-secondary` CTA. No decorative elements (no dashed border, no illustration).
+   477→  8. **Footer**: `pt-20 pb-10` with a centered single line of `text-xs text-meta tracking-body` copy under a `border-t border-border` hairline. No logo, no social, no decoration.
+   478→- **TypeScript fix**: changed the `NewReviewWizard` `onCreate` handler from `onNew(input)` (which triggered a TS error: `subType: ReviewSubType` is wider than the Props contract's `subType: null`) to an explicit destructure-and-rebuild: `onNew({ title: input.title, type: input.type, subType: null, researchQuestion: input.researchQuestion })`. This is semantically correct (the welcome-screen flow only ever creates top-level reviews with no sub-type) and satisfies strict TS without any `as` cast through `any`. This eliminates one pre-existing TS error.
+   479→- **Toast migration**: replaced `alert(\`Failed to delete: ${e.message}\`)` with `toast.error(\`Failed to delete: ${msg}\`)` (sonner), and added `toast.success("Review deleted")` on the success path. Kept native `confirm(...)` for the delete confirmation (it's a confirmation step, not a transient toast).
+   480→- **Icon/color audit**: removed all emerald-600/100/700/950 classes (4 occurrences in cards, 2 in saved-review tile hover, 1 in the hero badge, 1 in the hero H1 gradient). Replaced with Apple Action Blue hex (`#0071e3`, `#0077ed`, `#0066cc`) and the `bg-surface-apple text-fg-2` neutral tile pattern. Removed the `text-blue-*`, `text-amber-*` colored icon backgrounds (the demo card's amber-100/700 was the most jarring) and replaced with the same neutral surface tile for visual consistency across the three action cards. Also removed `Sparkles`/`Clock`/`Settings2` (Clock was only used for the section header which is now an eyebrow; Sparkles was decorative in the hero badge + demo button; Settings2 is still in the TYPE_ICONS map for FLEXIBLE reviews).
+   481→- **Removed dead state**: dropped the `recent` state (`useState<RecentFileEntry[]>(() => loadRecentFiles())`) and the `setRecent(loadRecentFiles())` call inside `handleDelete`. The state was set but never read in the JSX — keeping it would mean dead code in a freshly-rewritten component. `removeRecentFile(id)` (the actual side-effect on localStorage) is still called, so behavior is preserved. Also dropped the `loadRecentFiles` / `RecentFileEntry` imports that were only there to feed the dead state.
+   482→- **Type tightening**: typed the fetch response payload as `{ reviews?: SavedReviewMeta[] }` (was implicitly `any` from `.json()`), and tightened the `.catch` callbacks to `unknown` with `e instanceof Error` narrowing (was `(e)` untyped → `e.message` access).
+   483→- Lint: `bun run lint` clean (0 errors / 0 warnings). TypeScript: 0 errors introduced in `welcome-screen.tsx` (1 pre-existing error removed). Total project tsc error count went from 8 → 7.
+   484→
+   485→Stage Summary:
+   486→- Single file rewritten: `/home/z/my-project/src/components/revkit/welcome-screen.tsx` (370 lines, named `WelcomeScreen` export, `"use client"`, strict TS, no `any`).
+   487→- Apple design language applied across all 7 sections (sticky header / hero billboard / action tile row / spec strip / saved review library / empty state / footer):
+   488→  - Pure white hero canvas (emerald gradient removed).
+   489→  - SF Pro Display on all headings (via `@layer base` h1-h4 rule), `tracking-display` (-0.015em) on display heads, `tracking-body` (-0.022em) on body copy.
+   490→  - Single Apple Action Blue (`#0071e3`) accent reserved for: hero primary CTA, primary action card's icon tile + eyebrow, saved-review left tile (and its hover fill), header logo (already Apple-styled), `.text-link` Cochrane handbook link. Everything else walks down the 4-stop neutral ramp (`text-fg-2` / `text-meta`).
+   491→  - Card geometry: 18px radius (`.card-apple` → `--radius-lg`), 8px on inputs (`rounded-lg`/`rounded-md` on small icon chips), 980px capsule on all CTAs (`.btn-pill`).
+   492→  - Restraint: zero shadows by default — `.card-apple:hover` lifts the `0_12px_32px_rgba(0,0,0,0.08)` raised shadow; tiles also `hover:-translate-y-0.5`.
+   493→  - Motion: `.transition-apple` (cubic-bezier(0.28, 0, 0.22, 1), 150ms) on buttons/links; `.transition-apple-slow` (220ms) on cards. Framer Motion hero entrance uses the same Apple curve.
+   494→  - Focus: `.focus-halo` (4px blue glow ring) on every interactive element (buttons, links, review tiles, delete button).
+   495→  - Mobile-first responsive with `sm:` / `md:` / `lg:` breakpoints; container constrained to Apple's `--container-max: 1024px` (`max-w-5xl`).
+   496→  - Replaced `alert(...)` with `toast.error(...)` (sonner) for transient error feedback; added `toast.success(...)` for delete confirmation. Kept native `confirm(...)` for the destructive-action confirmation step.
+   497→  - shadcn primitives used: `Badge` (saved-review metadata row), `Skeleton` (loading state). shadcn `Card` deliberately skipped in favor of plain `<div className="card-apple …">` because shadcn `Card` ships `shadow-sm rounded-xl py-6 gap-6` defaults that conflict with Apple's flat-default / hover-only-raised / 18px-radius / `gap-0` discipline; fighting those defaults inline was less clean than just using `.card-apple` directly.
+   498→  - Accessibility: review tiles promoted from `<Card onClick>` (keyboard-inaccessible) to `<div role="button" tabIndex={0} onClick onKeyDown>` with Enter + Space handlers and `.focus-halo` on focus. Delete button stays invisible until `group-hover` OR `focus-visible` so keyboard users can reach it.
+   499→- Acceptance verified:
+   500→  - `bun run lint` → 0 errors / 0 warnings.
+   501→  - `bunx tsc --noEmit` → 0 errors in `welcome-screen.tsx` (1 pre-existing error eliminated; remaining 7 errors are all in unrelated files: `examples/`, `skills/`, `src/app/api/reviews/route.ts`, `src/components/revkit/settings-page.tsx`, `src/lib/project/state.ts`).
+   502→  - All 6 emerald color classes from the original (`emerald-50/30`, `emerald-100`, `emerald-600`, `emerald-700`, `emerald-800`, `emerald-950`) are gone; replaced with Apple Action Blue hex values and the neutral `bg-surface-apple` / `text-fg-2` / `text-meta` ramp.
+   503→  - Props contract preserved verbatim: `interface Props { onNew: (input: { title: string; type: ReviewType; subType: null; researchQuestion: string }) => void; onOpen: (id: string) => void; refreshKey: number; }` — no signature changes.
+   504→
+   505→---
+   506→Task ID: A-summary
+   507→Agent: main
+   508→Task: Apply Apple design language to RevKit UI (welcome screen, workspace shell, wizard, logo).
+   509→
+   510→Work Log:
+   511→- Attempted `npx skills@latest add emilkowalski/skills` — command consistently timed out (network-restricted sandbox). However, the local `design` skill already ships a complete Apple brand-inspiration folder at `skills/design/design-systems/brand-inspiration/apple/` with DESIGN.md + tokens.css + components.html.
+   512→- Read Apple DESIGN.md + tokens.css (39KB total).
+   513→- Wrote new `globals.css` with Apple design tokens as CSS custom properties:
+   514→  - Surface ladder: --background #ffffff, --surface-apple #f5f5f7, --surface-warm #fbfbfd
+   515→  - 4-stop neutral ramp: --foreground #1d1d1f → --foreground-2 #424245 → --muted #6e6e73 → --meta #86868b
+   516→  - Single accent: --accent #0071e3 (Apple Action Blue), --accent-hover #0077ed, --accent-active #0066cc
+   517→  - SF Pro typography stack with Helvetica Neue fallback
+   518→  - Tiered radius: 8/12/18/980px (capsule CTA)
+   519→  - Restrained elevation: flat / ring / raised (3 levels only)
+   520→  - Apple focus halo: 4px blue glow ring
+   521→  - Motion: cubic-bezier(0.28, 0, 0.22, 1), 220ms base
+   522→  - Dark mode tokens (surface-black base + on-dark blue accent #2997ff)
+   523→  - Utility classes: .btn-pill (capsule), .btn-pill-secondary, .eyebrow, .band-light/soft/warm, .card-apple, .field-apple, .tracking-display, .tracking-body, .bg-surface-apple, .text-meta, .elev-ring, .elev-raised, .transition-apple, .focus-halo, .scrollbar-apple
+   524→- Updated layout.tsx to load Inter (closest Google Fonts substitute for SF Pro Text) + JetBrains Mono via next/font/google.
+   525→- Redesigned RevKitLogo: solid blue tile (#0071e3) + 14px radius + white meta-analysis diamond + 2 study circle markers + whisper-thin null-effect line. No decorative gradients.
+   526→- Dispatched 3 parallel subagents to apply Apple styling:
+   527→  - A-3 welcome-screen.tsx: Apple billboard hero, 3-tile action row with hover shadow, spec strip, Apple-style saved-reviews cards with hover-only delete button. Replaced 6 emerald classes with Apple Action Blue.
+   528→  - A-4 workspace-shell.tsx: Frosted-glass top bar (`bg-background/80 backdrop-blur-xl`), warm sidebar (`bg-surface-warm`), Apple-blue capsule Save button, segmented phase stepper, Apple KPI tiles.
+   529→  - A-5 new-review-wizard.tsx: Apple modal (rounded-18px + elev-raised shadow), eyebrow + display title header, custom progress bar with Apple-blue fill, sr-only radio + Apple-style icon tiles as selection affordance, Apple-style field-apple inputs, .btn-pill capsule CTAs, framer-motion transitions using Apple's cubic-bezier(0.28, 0, 0.22, 1).
+   530→- Fixed 3 pre-existing TS errors: settings-page.tsx missing Review type import; state.ts null check; route.ts RobJudgement type cast.
+   531→
+   532→Stage Summary:
+   533→- All 3 redesigned files pass lint + tsc cleanly.
+   534→- Verified with agent-browser:
+   535→  - Welcome page loads with Apple hero + 3 action tiles + spec strip + saved reviews.
+   536→  - Workspace loads with frosted-glass toolbar + warm sidebar + Apple-blue phase stepper + KPI tiles.
+   537→  - Forest plot still computes correctly (OR 0.88 [0.77, 1.01], I²=69%, Z=-1.86, P=0.063 — matches R output).
+   538→  - Wizard loads with Apple eyebrow + display title + step indicator + radio cards.
+   539→- All emerald accents replaced with Apple Action Blue (#0071e3).
+   540→- All headings now use font-display + tracking-display (tight -0.015em letter-spacing).
+   541→- All inputs use .field-apple (border-led + 4px blue focus halo).
+   542→- All CTAs use .btn-pill (Apple's signature 980px-radius capsule).
+   543→

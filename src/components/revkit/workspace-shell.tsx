@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
@@ -179,7 +178,7 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onExit}
-              className="shrink-0 inline-flex items-center gap-0.5 text-fg-2 hover:text-foreground transition-apple focus-halo rounded-md px-2 py-1 -ml-2"
+              className="btn-press shrink-0 inline-flex items-center gap-0.5 text-fg-2 hover:text-foreground transition-apple focus-halo rounded-md px-2 py-1 -ml-2"
             >
               <ChevronLeft className="size-4" />
               <span className="hidden sm:inline text-[14px]">Library</span>
@@ -219,7 +218,7 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
             <button
               onClick={handleSave}
               disabled={isSaving || !isDirty}
-              className="btn-pill px-5 py-2 text-[14px] font-medium focus-halo"
+              className="btn-pill btn-press px-5 py-2 text-[14px] font-medium focus-halo"
             >
               {isSaving ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -244,7 +243,7 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] transition-apple focus-halo ${
+                  className={`btn-press w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] transition-apple focus-halo ${
                     isActive
                       ? "bg-[#0071e3]/10 text-[#0071e3] font-medium"
                       : "text-fg-2 hover:bg-surface-apple hover:text-foreground"
@@ -273,20 +272,19 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
           </div>
         </aside>
 
-        {/* Main content — Apple reading measure */}
+        {/* Main content — Apple reading measure.
+            Tab transitions use CSS-only .enter-pop (220ms scale(0.96)→1 +
+            opacity 0→1, ease-out) keyed off `active` so each tab switch remounts
+            the panel and replays the entrance. Per Emil's "Use CSS transitions
+            over keyframes for interruptible UI." No framer-motion = off main
+            thread. */}
         <main className="flex-1 overflow-y-auto scrollbar-apple bg-background">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-              className="p-6 md:p-10 max-w-5xl mx-auto"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div
+            key={active}
+            className="enter-pop p-6 md:p-10 max-w-5xl mx-auto"
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

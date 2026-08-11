@@ -42,7 +42,20 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
-        <SonnerToaster richColors position="top-right" />
+        {/* Sonner toaster — Apple-aligned styling: 18px radius matches
+            --radius-lg, hairline border uses --border, theme=system follows OS
+            dark mode. toastOptions pass-through applies the per-toast style. */}
+        <SonnerToaster
+          richColors
+          position="top-right"
+          theme="system"
+          toastOptions={{
+            style: {
+              borderRadius: "18px",
+              border: "1px solid var(--border)",
+            },
+          }}
+        />
       </body>
     </html>
   );
