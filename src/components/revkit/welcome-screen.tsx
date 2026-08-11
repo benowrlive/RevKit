@@ -42,11 +42,11 @@ import {
 import { RevKitLogo } from "@/components/revkit/icons";
 import { NewReviewWizard } from "@/components/revkit/new-review-wizard";
 import { ThemeToggle } from "@/components/revkit/theme-toggle";
-import type { ReviewType } from "@/lib/types";
+import type { ReviewType, ReviewSubType } from "@/lib/types";
 import { removeRecentFile } from "@/lib/project/id";
 
 interface Props {
-  onNew: (input: { title: string; type: ReviewType; subType: null; researchQuestion: string }) => void;
+  onNew: (input: { title: string; type: ReviewType; subType: ReviewSubType; researchQuestion: string }) => void;
   onOpen: (id: string) => void;
   refreshKey: number;
 }
