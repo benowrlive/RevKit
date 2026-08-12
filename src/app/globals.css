@@ -601,8 +601,8 @@
     font-size: var(--text-base);
   }
   .table-compact thead th {
-    height: 32px;
-    padding: 0 var(--space-5);
+    height: 26px;
+    padding: 0 var(--space-4);
     background: var(--muted);
     color: var(--muted-foreground);
     font-weight: 500;
@@ -616,7 +616,7 @@
     z-index: 1;
   }
   .table-compact tbody td {
-    height: 32px;
+    height: 26px;
     padding: 0 var(--space-5);
     border-bottom: 1px solid var(--border-soft);
     color: var(--foreground-2);

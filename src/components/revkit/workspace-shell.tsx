@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   CircleDot,
   Calculator,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useReviewStore } from "@/lib/project/state";
 import {
@@ -64,14 +66,59 @@ interface Props {
 // ─── Workflow stages (the research lifecycle) ─────────────────────────────
 // Maps sidebar tabs to the research workflow. Settings is NOT a workflow
 // stage — it's a tool, accessed from the topbar gear icon.
-const WORKFLOW_STAGES: { id: WorkspaceTab; label: string; short: string; icon: React.ElementType; badge?: (r: Review) => React.ReactNode }[] = [
-  { id: "overview", label: "Overview", short: "Setup", icon: LayoutDashboard },
-  { id: "studies", label: "Studies", short: "Studies", icon: Users, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.studies.length}</span> },
-  { id: "references", label: "Screening", short: "Screen", icon: FileText, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.references.length}</span> },
-  { id: "comparisons", label: "Extraction & Analysis", short: "Extract", icon: GitCompare, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.comparisons.length}</span> },
-  { id: "rob", label: "Risk of Bias", short: "RoB", icon: ShieldCheck, badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.robAssessments.length}</span> },
-  { id: "prisma", label: "PRISMA Flow", short: "PRISMA", icon: Network },
-  { id: "export", label: "Export", short: "Export", icon: Download },
+// Each stage has a `status` function that returns a semantic color dot:
+//   green = has data, amber = partial, red = empty/blocked.
+const WORKFLOW_STAGES: {
+  id: WorkspaceTab;
+  label: string;
+  short: string;
+  icon: React.ElementType;
+  group: string;
+  badge?: (r: Review) => React.ReactNode;
+  status?: (r: Review) => "green" | "amber" | "red" | "neutral";
+}[] = [
+  {
+    id: "overview", label: "Overview", short: "Setup", icon: LayoutDashboard, group: "Setup",
+    status: () => "neutral",
+  },
+  {
+    id: "studies", label: "Studies", short: "Studies", icon: Users, group: "Setup",
+    badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.studies.length}</span>,
+    status: (r) => r.studies.length > 0 ? "green" : "red",
+  },
+  {
+    id: "references", label: "Screening", short: "Screen", icon: FileText, group: "Setup",
+    badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.references.length}</span>,
+    status: (r) => {
+      const inc = r.references.filter((x) => x.decision === "INCLUDE").length;
+      if (r.references.length === 0) return "red";
+      if (inc > 0) return "green";
+      return "amber";
+    },
+  },
+  {
+    id: "comparisons", label: "Extraction & Analysis", short: "Extract", icon: GitCompare, group: "Analysis",
+    badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.comparisons.length}</span>,
+    status: (r) => {
+      const outcomes = r.comparisons.reduce((a, c) => a + c.outcomes.length, 0);
+      if (outcomes > 0) return "green";
+      if (r.comparisons.length > 0) return "amber";
+      return "red";
+    },
+  },
+  {
+    id: "rob", label: "Risk of Bias", short: "RoB", icon: ShieldCheck, group: "Analysis",
+    badge: (r) => <span className="ml-auto text-[11px] tabular text-muted-fg">{r.robAssessments.length}</span>,
+    status: (r) => r.robAssessments.length > 0 ? "green" : r.studies.length > 0 ? "amber" : "red",
+  },
+  {
+    id: "prisma", label: "PRISMA Flow", short: "PRISMA", icon: Network, group: "Report",
+    status: (r) => r.prismaFlow ? "green" : "neutral",
+  },
+  {
+    id: "export", label: "Export", short: "Export", icon: Download, group: "Report",
+    status: () => "neutral",
+  },
 ];
 
 // Map each tab to its position in the workflow (0-indexed). Settings is -1 (not a stage).
@@ -242,34 +289,20 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
 
       {/* Main: sidebar + content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar — glassmorphism + workflow stepper */}
-        <aside className="bg-sidebar backdrop-blur-xl backdrop-saturate-150 border-r border-border w-14 sm:w-56 shrink-0 overflow-y-auto scrollbar-thin">
-          {/* Workflow progress indicator at top of sidebar */}
+        {/* Sidebar — dashboard-style with collapsible groups + status dots */}
+        <aside className="bg-sidebar backdrop-blur-xl backdrop-saturate-150 border-r border-border w-14 sm:w-56 shrink-0 overflow-y-auto scrollbar-thin flex flex-col">
+          {/* Workflow progress indicator */}
           <WorkflowStepper activeTab={active} onTabChange={onTabChange} />
 
-          <nav className="p-1.5 space-y-0.5">
-            {WORKFLOW_STAGES.map((item) => {
-              const isActive = active === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  data-active={isActive}
-                  className={`btn-compact btn-ghost w-full h-8 px-2 text-[12px] ${
-                    isActive ? "" : ""
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  <span className="hidden sm:inline truncate">{item.label}</span>
-                  {review && <span className="hidden sm:inline">{item.badge?.(review)}</span>}
-                </button>
-              );
-            })}
-          </nav>
-          <Separator className="my-1.5 hidden sm:block" />
-          <div className="p-2 space-y-1 text-[10px] text-meta hidden sm:block">
+          {/* Collapsible grouped nav */}
+          <CollapsibleSidebarNav
+            stages={WORKFLOW_STAGES}
+            activeTab={active}
+            onTabChange={onTabChange}
+            review={review}
+          />
+
+          <div className="mt-auto p-2 space-y-1 text-[10px] text-meta hidden sm:block border-t border-border">
             <div className="font-mono tabular">{review.id.slice(0, 12)}…</div>
             <div>revkit-1 · v0.1.0</div>
           </div>
@@ -284,13 +317,16 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-              className="p-4 sm:p-5 max-w-6xl mx-auto"
+              className="p-4 sm:p-5 max-w-6xl mx-auto pb-16"
             >
               {children}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ── Status ticker bar (Bloomberg-style, always visible at bottom) ── */}
+      <StatusBar review={review} isDirty={isDirty} dbId={dbId} />
     </div>
   );
 }
@@ -678,5 +714,152 @@ function WhatNextHint(props: {
         <p className="text-[12px] text-fg-2 leading-snug">{hint.text}</p>
       </div>
     </Card>
+  );
+}
+
+// ─── Collapsible Sidebar Nav (file-browser-style grouped sections) ────────
+// Groups the workflow stages into collapsible sections: Setup / Analysis / Report.
+// Each item has a semantic status dot (green/amber/red/neutral).
+
+const STATUS_COLORS: Record<string, string> = {
+  green: "bg-emerald-500",
+  amber: "bg-amber-500",
+  red: "bg-rose-500",
+  neutral: "bg-border",
+};
+
+function CollapsibleSidebarNav({
+  stages,
+  activeTab,
+  onTabChange,
+  review,
+}: {
+  stages: typeof WORKFLOW_STAGES;
+  activeTab: WorkspaceTab;
+  onTabChange: (t: WorkspaceTab) => void;
+  review: Review;
+}) {
+  // Group stages by their `group` field.
+  const groups = stages.reduce<Record<string, typeof WORKFLOW_STAGES>>((acc, s) => {
+    if (!acc[s.group]) acc[s.group] = [];
+    acc[s.group].push(s);
+    return acc;
+  }, {});
+
+  // Track which groups are collapsed. Default: all expanded.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(group: string) {
+    setCollapsed((prev) => ({ ...prev, [group]: !prev[group] }));
+  }
+
+  return (
+    <nav className="p-1.5 space-y-1">
+      {Object.entries(groups).map(([groupName, groupStages]) => {
+        const isCollapsed = collapsed[groupName];
+        const hasActive = groupStages.some((s) => s.id === activeTab);
+        // Auto-expand if this group contains the active tab.
+        const showCollapsed = isCollapsed && !hasActive;
+        return (
+          <div key={groupName}>
+            {/* Group header */}
+            <button
+              onClick={() => toggleGroup(groupName)}
+              className="flex w-full items-center gap-1 px-2 py-1 text-[10px] uppercase tracking-[0.06em] text-meta font-semibold hover:text-fg-2 transition-colors sm:hidden md:flex"
+            >
+              {showCollapsed ? (
+                <ChevronRight className="size-3 shrink-0" />
+              ) : (
+                <ChevronDown className="size-3 shrink-0" />
+              )}
+              <span>{groupName}</span>
+            </button>
+            {/* Group items */}
+            <div className={`space-y-0.5 ${showCollapsed ? "hidden" : ""}`}>
+              {groupStages.map((item) => {
+                const isActive = activeTab === item.id;
+                const Icon = item.icon;
+                const status = item.status?.(review) ?? "neutral";
+                const statusColor = STATUS_COLORS[status];
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onTabChange(item.id)}
+                    data-active={isActive}
+                    className={`btn-compact btn-ghost w-full h-8 px-2 text-[12px] ${
+                      isActive ? "" : ""
+                    }`}
+                    title={item.label}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span className="hidden sm:inline truncate flex-1 text-left">{item.label}</span>
+                    {/* Status dot — semantic color indicator */}
+                    <span className={`size-1.5 rounded-full shrink-0 ${statusColor}`} />
+                    {review && <span className="hidden sm:inline">{item.badge?.(review)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ─── Status Bar (Bloomberg-style ticker at the bottom) ──────────────────────
+// Always visible. Shows review metrics at a glance: phase, studies, refs,
+// outcomes, RoB, dirty state, last-saved. Compact monospace text.
+
+function StatusBar({
+  review,
+  isDirty,
+  dbId,
+}: {
+  review: Review;
+  isDirty: boolean;
+  dbId: string | null;
+}) {
+  const studies = review.studies.length;
+  const refs = review.references.length;
+  const included = review.references.filter((r) => r.decision === "INCLUDE").length;
+  const outcomes = review.comparisons.reduce((a, c) => a + c.outcomes.length, 0);
+  const rob = review.robAssessments.length;
+
+  const items = [
+    { label: "Phase", value: review.phase.replace("_", " "), color: "text-accent" },
+    { label: "Studies", value: String(studies), color: studies > 0 ? "text-emerald-500" : "text-muted-fg" },
+    { label: "Refs", value: String(refs), color: refs > 0 ? "text-emerald-500" : "text-muted-fg" },
+    { label: "Included", value: String(included), color: included > 0 ? "text-emerald-500" : "text-muted-fg" },
+    { label: "Outcomes", value: String(outcomes), color: outcomes > 0 ? "text-emerald-500" : "text-muted-fg" },
+    { label: "RoB", value: String(rob), color: rob > 0 ? "text-emerald-500" : "text-muted-fg" },
+  ];
+
+  return (
+    <footer className="border-t border-border bg-surface/80 backdrop-blur-xl h-7 flex items-center px-3 gap-4 text-[10px] font-mono tabular text-muted-fg shrink-0 z-20">
+      {/* Dirty indicator */}
+      {isDirty && (
+        <span className="flex items-center gap-1 text-amber-500">
+          <Circle className="size-1.5 fill-amber-500" />
+          UNSAVED
+        </span>
+      )}
+      {/* Metrics */}
+      {items.map((item) => (
+        <span key={item.label} className="flex items-center gap-1">
+          <span className="text-meta">{item.label}:</span>
+          <span className={item.color}>{item.value}</span>
+        </span>
+      ))}
+      {/* Last saved */}
+      {dbId && (
+        <span className="ml-auto hidden sm:flex items-center gap-1">
+          <span className="text-meta">Saved:</span>
+          <span className="text-muted-fg">
+            {new Date(review.updatedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
+          </span>
+        </span>
+      )}
+    </footer>
   );
 }
