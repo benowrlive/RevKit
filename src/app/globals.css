@@ -61,22 +61,22 @@
  * surfaces, hairline borders, restrained teal accent.
  * Inspired by Vercel Dashboard + Linear app. */
 :root {
-  /* Surfaces — 3 tiers */
-  --background: #0a0a0b;          /* near-black, not pure black */
-  --surface: #131316;             /* card / panel */
-  --surface-raised: #1a1a1f;       /* popover, dropdown */
-  --surface-hover: #1f1f24;        /* hover state */
+  /* Surfaces — 3 tiers. Brightened for better contrast. */
+  --background: #09090b;          /* near-black */
+  --surface: #18181b;             /* card / panel — brighter */
+  --surface-raised: #1f1f23;       /* popover, dropdown — brighter */
+  --surface-hover: #27272a;        /* hover state — brighter */
 
-  /* Foreground ramp — 4 stops */
+  /* Foreground ramp — 4 stops. Brightened for readability. */
   --foreground: #fafafa;          /* primary text */
-  --foreground-2: #d4d4d8;        /* secondary text */
-  --muted-foreground: #71717a;    /* tertiary, labels */
-  --meta: #52525b;                /* fine print */
+  --foreground-2: #e4e4e7;        /* secondary text — brighter (was #d4d4d8) */
+  --muted-foreground: #a1a1aa;    /* tertiary, labels — brighter (was #71717a) */
+  --meta: #71717a;                /* fine print — brighter (was #52525b) */
 
-  /* Borders — 2 stops */
-  --border: #27272a;
-  --border-soft: #1f1f23;
-  --input: #27272a;
+  /* Borders — 2 stops. Brightened for visibility. */
+  --border: #3f3f46;             /* brighter (was #27272a) */
+  --border-soft: #27272a;       /* brighter (was #1f1f23) */
+  --input: #3f3f46;              /* brighter (was #27272a) */
   --ring: #14b8a6;
 
   /* Accent — Teal */
@@ -89,15 +89,15 @@
   --accent-subtle: rgba(20, 184, 166, 0.12);  /* subtle bg tint */
 
   /* Secondary surfaces */
-  --secondary: #1a1a1f;
+  --secondary: #1f1f23;        /* brighter */
   --secondary-foreground: #fafafa;
 
-  --card: #131316;
+  --card: #18181b;             /* matches surface — brighter */
   --card-foreground: #fafafa;
-  --popover: #1a1a1f;
+  --popover: #1f1f23;           /* matches surface-raised — brighter */
   --popover-foreground: #fafafa;
 
-  --muted: #1a1a1f;
+  --muted: #1f1f23;            /* brighter */
 
   /* Semantic — restrained (under 5% surface area) */
   --destructive: #f43f5e;
@@ -112,14 +112,14 @@
   --chart-4: #ec4899;   /* pink */
   --chart-5: #84cc16;   /* lime */
 
-  /* Sidebar — slightly darker than main */
-  --sidebar: #0d0d0f;
-  --sidebar-foreground: #d4d4d8;
+  /* Sidebar — brighter for contrast */
+  --sidebar: #0f0f11;            /* slightly lighter than background */
+  --sidebar-foreground: #e4e4e7;  /* matches foreground-2 — brighter */
   --sidebar-primary: #14b8a6;
   --sidebar-primary-foreground: #f0fdfa;
-  --sidebar-accent: #1a1a1f;
+  --sidebar-accent: #27272a;     /* brighter */
   --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #1f1f23;
+  --sidebar-border: #3f3f46;    /* brighter — matches border */
   --sidebar-ring: #14b8a6;
 
   /* Typography — Inter UI + JetBrains Mono numerics */

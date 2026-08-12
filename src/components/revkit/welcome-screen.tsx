@@ -31,7 +31,7 @@ import {
   Pulse,
   CaretRight,
 } from "@phosphor-icons/react";
-import { RevKitLogo, RevKitIcon } from "@/components/revkit/icons";
+import { RevKitIcon } from "@/components/revkit/icons";
 import { NewReviewWizard } from "@/components/revkit/new-review-wizard";
 import { ThemeToggle } from "@/components/revkit/theme-toggle";
 import type { ReviewType, ReviewSubType } from "@/lib/types";
@@ -143,7 +143,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         </div>
       </header>
 
-      {/* ── Hero — icon + wordmark + eyebrow + subtitle + CTAs ─────────── */}
+      {/* ── Hero — R Logo + wordmark + eyebrow + subtitle + CTAs ────────── */}
       <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-4xl enter-pop flex flex-col items-center text-center">
 
@@ -154,9 +154,9 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
             </span>
           </div>
 
-          {/* Logo icon + wordmark */}
-          <div className="flex items-center gap-4 sm:gap-6 mb-4">
-            <RevKitLogo className="size-16 sm:size-20 shrink-0" />
+          {/* R Logo + "RevKit" wordmark — same size, side by side */}
+          <div className="flex items-center justify-center gap-3 sm:gap-5 mb-4">
+            <RevKitIcon className="size-16 sm:size-24 lg:size-28 shrink-0" />
             <h1
               className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none"
               style={{
