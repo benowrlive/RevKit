@@ -2,24 +2,15 @@
 
 // src/components/revkit/welcome-screen.tsx
 //
-// Compact redesign — Linear/Vercel dark-first density with teal accent.
+// RevKit home page — hero + feature cards + library.
 //
-// Design principles:
-//   • Compact 44px sticky top bar; max-w-5xl content column.
-//   • Hero is `py-10` (NOT 80vh) — single-line H1 at 26px, 2 inline CTAs.
-//   • 3-tile action row at `grid grid-cols-3 gap-3` — accent on New Review.
-//   • 4-feature inline strip — no dividers, just whitespace + tiny icons.
-//   • Library list — single-column compact rows (3-line: title, RQ, badges).
-//   • Empty state — dashed `card-compact` with centered icon.
-//   • Footer — one-line `text-xs text-meta` centered.
-//
-// Phosphor icons are used throughout. Note: this installed version of
-// @phosphor-icons/react (v2.1.10) does NOT export the bare names
-// `Activity`, `Layers`, `Settings2`, `Trash2`, `ChevronLeft`, `ChevronRight`,
-// `Sparkles`, or `FlaskConical`. We use closest visual equivalents:
-//   Activity → Pulse · Layers → Stack · Settings2 → Gear · Trash2 → Trash
-//   Sparkles → Sparkle · FlaskConical → Flask
-//   ChevronLeft/Right → CaretLeft/CaretRight (wizard only)
+// Design language:
+//   • Dark-first, teal/blue accents from the RevKit logo palette.
+//   • Glassmorphism cards (backdrop-blur + translucent surfaces).
+//   • Hero: icon + "RevKit" wordmark with gradient, eyebrow pill, subtitle, CTAs.
+//   • 3 feature cards: icon tile + title + description + action link.
+//   • Library list: compact glass rows with hover-reveal delete.
+//   • Footer: single line, centered, muted.
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -38,6 +29,8 @@ import {
   Flask,
   Gear,
   Pulse,
+  CaretRight,
+  Lock,
 } from "@phosphor-icons/react";
 import { RevKitLogo } from "@/components/revkit/icons";
 import { NewReviewWizard } from "@/components/revkit/new-review-wizard";
@@ -71,9 +64,9 @@ interface SavedReviewMeta {
 }
 
 const FEATURES = [
-  { icon: ChartBar, label: "Meta-analysis engine", desc: "MH · Peto · IV · DL" },
+  { icon: ChartBar, label: "Meta-analysis", desc: "MH · Peto · IV · DL pooling" },
   { icon: ShieldCheck, label: "Risk of bias", desc: "RoB 2 · ROBINS-I · QUADAS-2" },
-  { icon: Stack, label: "PRISMA 2020", desc: "11-box flow editor" },
+  { icon: Stack, label: "PRISMA 2020", desc: "11-box flow diagram" },
   { icon: Export, label: "Exports", desc: "Word · CSV · PNG · SVG" },
 ] as const;
 
@@ -85,9 +78,6 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
   useEffect(() => {
     let cancelled = false;
     const ctrl = new AbortController();
-    // setState calls happen inside async .then/.catch callbacks (NOT in the
-    // effect body itself), so we avoid the react-hooks/set-state-in-effect
-    // lint warning that fires for synchronous setState in effect bodies.
     fetch("/api/reviews", { signal: ctrl.signal })
       .then((r) => r.json())
       .then((data: { reviews?: SavedReviewMeta[] }) => {
@@ -136,15 +126,10 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* ── Sticky top bar (44px) ───────────────────────────────────────────
-         Hairline border-b, surface tinted with backdrop blur so content
-         remains legible under scroll. Logo + wordmark left, ThemeToggle
-         right. */}
+      {/* ── Sticky top bar ─────────────────────────────────────────────── */}
       <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-10 h-11">
-        <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <span className="text-md font-semibold tracking-display">RevKit</span>
-          </div>
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <span className="text-md font-semibold tracking-display">RevKit</span>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs uppercase tracking-[0.04em] text-meta sm:inline">
               v0.1.0 · MIT
@@ -154,120 +139,85 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         </div>
       </header>
 
-      {/* ── Hero — logo as the hero element ────────────────────────────────
-         The RevKit logo says it all: "Systematic Reviews · Meta-Analysis ·
-         Evidence Synthesis" + "Better Evidence. Better Decisions." No need
-         for duplicate text. The logo fills the hero space, buttons below. */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="mx-auto max-w-5xl enter-pop flex flex-col items-center text-center">
-          {/* Large hero logo — fills the space the eyebrow/H1/paragraph used to */}
-          <RevKitLogo className="w-full max-w-md sm:max-w-lg h-auto" />
-          {/* Two CTAs directly below the logo */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+      {/* ── Hero — icon + wordmark + eyebrow + subtitle + CTAs ─────────── */}
+      <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-4xl enter-pop flex flex-col items-center text-center">
+
+          {/* Eyebrow pill */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-subtle/50 px-4 py-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent">
+              Systematic Reviews · Meta-Analysis · Evidence Synthesis
+            </span>
+          </div>
+
+          {/* Logo icon + wordmark */}
+          <div className="flex items-center gap-4 sm:gap-6 mb-4">
+            <RevKitLogo className="size-16 sm:size-20 shrink-0" />
+            <h1
+              className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none"
+              style={{
+                background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              RevKit
+            </h1>
+          </div>
+
+          {/* Decorative dots */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="size-2 rounded-full bg-primary" />
+            <span className="size-2 rounded-full bg-primary/70" />
+            <span className="size-2 rounded-full bg-accent/70" />
+            <span className="size-2 rounded-full bg-accent" />
+          </div>
+
+          {/* Subtitle */}
+          <p className="text-lg sm:text-xl text-muted-fg font-normal max-w-2xl leading-relaxed">
+            Better evidence. Better decisions. Revkit helps you conduct
+            systematic reviews, meta-analyses, and build evidence you can trust.
+          </p>
+
+          {/* CTAs */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setWizardOpen(true)}
-              className="group relative inline-flex h-9 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold tracking-display transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative inline-flex h-10 items-center gap-2 rounded-[10px] px-6 text-[15px] font-semibold tracking-tight transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
                 background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
                 color: "white",
-                boxShadow: "0 2px 8px color-mix(in oklab, var(--primary), transparent 60%), 0 0 0 1px color-mix(in oklab, var(--primary), transparent 80%)",
+                boxShadow:
+                  "0 4px 16px color-mix(in oklab, var(--primary), transparent 55%), 0 0 0 1px color-mix(in oklab, var(--primary), transparent 75%)",
               }}
             >
-              <Plus size={16} weight="bold" className="transition-transform group-hover:scale-110" />
+              <Plus size={18} weight="bold" className="transition-transform group-hover:scale-110" />
               Create new review
             </button>
             <button
               type="button"
               onClick={loadDemo}
-              className="btn-compact btn-secondary h-9 px-4 text-[14px]"
+              className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-border bg-surface px-5 text-[15px] font-medium text-fg-2 transition-all hover:bg-surface-hover hover:border-muted-fg active:scale-[0.98]"
             >
-              <Sparkle size={14} weight="fill" />
+              <Sparkle size={16} weight="fill" className="text-accent" />
               Load demo
             </button>
           </div>
         </div>
       </section>
 
-      {/* ── 3-tile action row ───────────────────────────────────────────────
-         Tile 1 (New Review) carries the teal accent via bg-accent-subtle on
-         the icon tile; tiles 2 and 3 walk down to neutral bg-surface-hover so
-         the eye stays on the primary action. stagger-item applies the 50ms
-         stepped entrance (0/40/80ms). */}
-      <section className="px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-5xl grid-cols-3 gap-3">
-          {/* Tile 1 — New Review (accent) */}
-          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
-            <div className="flex size-9 items-center justify-center rounded-md bg-accent-subtle text-accent">
-              <FileText size={18} weight="duotone" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-md font-medium tracking-display">New review</h3>
-              <p className="text-xs text-muted-fg leading-relaxed">
-                Start a new systematic review with the 4-step wizard.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setWizardOpen(true)}
-              className="btn-compact btn-ghost text-accent mt-auto self-start"
-            >
-              Create
-            </button>
-          </div>
-
-          {/* Tile 2 — Browse library (neutral) */}
-          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
-            <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
-              <FolderOpen size={18} weight="duotone" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-md font-medium tracking-display">Browse library</h3>
-              <p className="text-xs text-muted-fg leading-relaxed">
-                Pick a review from your saved library below.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={scrollToLibrary}
-              className="btn-compact btn-ghost mt-auto self-start"
-            >
-              Browse
-            </button>
-          </div>
-
-          {/* Tile 3 — Demo (neutral) */}
-          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-lg shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col gap-3 p-4">
-            <div className="flex size-9 items-center justify-center rounded-md bg-surface-hover text-fg-2">
-              <Sparkle size={18} weight="duotone" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-md font-medium tracking-display">Try a demo</h3>
-              <p className="text-xs text-muted-fg leading-relaxed">
-                Intervention meta-analysis with sample data pre-loaded.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={loadDemo}
-              className="btn-compact btn-ghost mt-auto self-start"
-            >
-              Load demo
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Feature highlights — 4 small inline cards, no dividers ────────
-         Whitespace separates — no hairlines. Tiny 16px Phosphor icon +
-         label + 1-line description. */}
-      <section className="px-4 sm:px-6 lg:px-8 mt-10">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-6 sm:grid-cols-4">
+      {/* ── Feature highlights — 4 inline items ────────────────────────── */}
+      <section className="px-4 sm:px-6 lg:px-8 mb-12">
+        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 sm:grid-cols-4">
           {FEATURES.map((f) => (
-            <div key={f.label} className="flex flex-col gap-1.5">
-              <f.icon size={16} weight="duotone" className="text-accent" />
+            <div key={f.label} className="flex flex-col items-center text-center gap-2">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-accent-subtle text-accent">
+                <f.icon size={18} weight="duotone" />
+              </div>
               <div>
-                <div className="text-sm font-medium tracking-display">{f.label}</div>
+                <div className="text-sm font-medium tracking-tight">{f.label}</div>
                 <div className="mt-0.5 text-xs text-muted-fg">{f.desc}</div>
               </div>
             </div>
@@ -275,11 +225,71 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         </div>
       </section>
 
-      {/* ── Library list ───────────────────────────────────────────────────
-         .section-header with eyebrow + count, then single-column compact
-         rows. Each row: type icon tile (size-9, neutral) + title + RQ +
-         tiny badges + date + ghost delete button (visible on hover). */}
-      <section id="recent-saved" className="px-4 sm:px-6 lg:px-8 py-10">
+      {/* ── 3 action cards ─────────────────────────────────────────────── */}
+      <section className="px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-3">
+
+          {/* Card 1 — New Review */}
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col p-6 sm:p-7">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-accent-subtle text-accent mb-4">
+              <FileText size={20} weight="duotone" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight">New review</h3>
+            <p className="mt-2 text-sm text-muted-fg leading-relaxed flex-1">
+              Start a new systematic review with the 4-step PICO wizard.
+              All 5 Cochrane review types supported.
+            </p>
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true)}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent hover:gap-2 transition-all"
+            >
+              Create <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+
+          {/* Card 2 — Browse library */}
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col p-6 sm:p-7">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-surface-hover text-fg-2 mb-4">
+              <FolderOpen size={20} weight="duotone" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight">Browse library</h3>
+            <p className="mt-2 text-sm text-muted-fg leading-relaxed flex-1">
+              Open a saved review from your library. Continue from where
+              you left off — all data preserved.
+            </p>
+            <button
+              type="button"
+              onClick={scrollToLibrary}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-fg-2 hover:gap-2 transition-all"
+            >
+              Browse <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+
+          {/* Card 3 — Demo */}
+          <div className="stagger-item bg-card backdrop-blur-xl backdrop-saturate-150 border border-border rounded-xl shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 flex flex-col p-6 sm:p-7">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-surface-hover text-fg-2 mb-4">
+              <Sparkle size={20} weight="duotone" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight">Try a demo</h3>
+            <p className="mt-2 text-sm text-muted-fg leading-relaxed flex-1">
+              See an intervention meta-analysis with 5 RCTs pre-loaded.
+              Forest plot, heterogeneity, and export included.
+            </p>
+            <button
+              type="button"
+              onClick={loadDemo}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-fg-2 hover:gap-2 transition-all"
+            >
+              Load demo <CaretRight size={14} weight="bold" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Library list ──────────────────────────────────────────────── */}
+      <section id="recent-saved" className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="mx-auto max-w-5xl">
           <div className="section-header">
             <div className="flex items-baseline gap-3">
@@ -368,11 +378,15 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         </div>
       </section>
 
-      {/* ── Footer — minimal single line ─────────────────────────────────── */}
-      <footer className="py-6">
-        <div className="mx-auto max-w-5xl px-4 text-center">
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <footer className="py-8 mt-auto">
+        <div className="mx-auto max-w-5xl px-4 text-center flex flex-col items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-meta">
+            <Lock size={12} />
+            <span>Your data stays in your browser. No sign-in required.</span>
+          </div>
           <p className="text-xs text-meta">
-            RevKit · open-source · not affiliated with Cochrane · Next.js + Prisma + Tailwind
+            RevKit · open-source · MIT · not affiliated with Cochrane
           </p>
         </div>
       </footer>
@@ -382,9 +396,6 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
         onClose={() => setWizardOpen(false)}
         onCreate={(input) => {
           setWizardOpen(false);
-          // Welcome-screen flow only ever creates top-level reviews with
-          // subType: null at this entry point — explicit narrowing avoids
-          // a cast through `any`.
           onNew({
             title: input.title,
             type: input.type,
