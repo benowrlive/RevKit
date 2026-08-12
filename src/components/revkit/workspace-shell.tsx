@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/revkit/theme-toggle";
 import { UserChip } from "@/components/revkit/user-chip";
 import { DtaCalculatorDialog } from "@/components/dta/calculator-dialog";
+import { RevKitIcon } from "@/components/revkit/icons";
 
 export type WorkspaceTab =
   | "overview"
@@ -161,6 +162,8 @@ export function WorkspaceShell({ active, onTabChange, onExit, children }: Props)
       <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-30">
         <div className="flex h-11 items-center justify-between px-3 sm:px-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            {/* R logo icon — small, in the topbar */}
+            <RevKitIcon className="size-6 shrink-0" />
             <button
               onClick={onExit}
               className="btn-compact btn-ghost h-7 px-2 text-[12px]"

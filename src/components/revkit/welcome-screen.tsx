@@ -30,9 +30,8 @@ import {
   Gear,
   Pulse,
   CaretRight,
-  Lock,
 } from "@phosphor-icons/react";
-import { RevKitLogo } from "@/components/revkit/icons";
+import { RevKitLogo, RevKitIcon } from "@/components/revkit/icons";
 import { NewReviewWizard } from "@/components/revkit/new-review-wizard";
 import { ThemeToggle } from "@/components/revkit/theme-toggle";
 import type { ReviewType, ReviewSubType } from "@/lib/types";
@@ -127,9 +126,14 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* ── Sticky top bar ─────────────────────────────────────────────── */}
-      <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-10 h-11">
+      <header className="bg-surface backdrop-blur-xl backdrop-saturate-150 border-b border-border sticky top-0 z-10 h-12">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <span className="text-md font-semibold tracking-display">RevKit</span>
+          {/* Left: R logo icon + "RevKit" wordmark */}
+          <div className="flex items-center gap-2">
+            <RevKitIcon className="size-7" />
+            <span className="text-md font-semibold tracking-display">RevKit</span>
+          </div>
+          {/* Right: version + theme toggle */}
           <div className="flex items-center gap-3">
             <span className="hidden text-xs uppercase tracking-[0.04em] text-meta sm:inline">
               v0.1.0 · MIT
@@ -380,15 +384,7 @@ export function WelcomeScreen({ onNew, onOpen, refreshKey }: Props) {
 
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="py-8 mt-auto">
-        <div className="mx-auto max-w-5xl px-4 text-center flex flex-col items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-meta">
-            <Lock size={12} />
-            <span>Your data stays in your browser. No sign-in required.</span>
-          </div>
-          <p className="text-xs text-meta">
-            RevKit · open-source · MIT · not affiliated with Cochrane
-          </p>
-        </div>
+        {/* Intentionally empty — user requested removal of footer text. */}
       </footer>
 
       <NewReviewWizard
